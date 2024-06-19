@@ -221,7 +221,7 @@ local function doRandomEvents(ignoreChance, ignoreTimeout)
 end
 
 local function catchWhirlis()
-    local lastTargetId = 0
+    local firstTargetId = 0
     local targetWhirlis = allWhirliIDs
 
     while API.Read_LoopyLoop() do
@@ -229,7 +229,7 @@ local function catchWhirlis()
         idleCheck()
 
         local fritoState = getFritoState()
-        local sleep = 500
+        local sleep = 750
 
         if useFlowers then
             if API.InvItemcount_1(flowerId) > 0 then
@@ -255,9 +255,19 @@ local function catchWhirlis()
                 local idx = math.random(1, #whirliObjs)
 
                 fritoState = getFritoState()
+                if fritoState == idleFritoState then
+                    firstTargetId = 0
+                end
+
                 local fritoState2 = API.VB_FindPSett(10340).state
-                if targetWhirlis ~= fancyWhirlis or (targetWhirlis == fancyWhirlis and (fritoState2 < 100000 and fritoState >= 800000)) then
-                    API.DoAction_NPC__Direct(0x29, API.OFF_ACT_InteractNPC_route, whirliObjs[idx])
+                if firstTargetId == 0 or (fritoState2 < 100000 and fritoState >= 800000) then
+                    if whirliObjs[idx].Id ~= firstTargetId then
+                        API.DoAction_NPC__Direct(0x29, API.OFF_ACT_InteractNPC_route, whirliObjs[idx])
+                    end
+
+                    if firstTargetId == 0 then
+                        firstTargetId = whirliObjs[idx].Id
+                    end
                 end
             else
                 print("Stack is full, waiting for frito to return")
