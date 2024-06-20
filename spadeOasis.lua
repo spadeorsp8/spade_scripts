@@ -23,10 +23,10 @@ local targetBasketLevel = 25
 local fritoVBId = 10338
 
 -- VB value of Frito before handling him
-local unhandledFritoState = 112347
+local unhandledFritoState = 149796
 
 -- VB value of Frito after handling, but before giving him orders
-local idleFritoState = 374491
+local idleFritoState = 411940
 
 local Cselect =
     API.ScriptDialogWindow2(
@@ -231,7 +231,7 @@ local function catchWhirlis()
         idleCheck()
 
         local fritoState = getFritoState()
-        local sleep = 750
+        local sleep = 500
 
         if useFlowers then
             if API.InvItemcount_1(flowerId) > 0 then
@@ -302,7 +302,7 @@ local function handleFrito()
 end
 
 if Cselect == "Catch Whirligigs" then
-    local Ccheck = API.ScriptDialogWindow2("Flower basket?", {"Roses", "Iris", "Hydrangea", "None"}, "Start", "Close").Name
+    local Ccheck = API.ScriptDialogWindow2("Flower basket?", {"Roses", "Iris", "Hydrangea", "Hollyhocks", "None"}, "Start", "Close").Name
     if Ccheck == "Roses" then
         useFlowers = true
         basketId = 122495
@@ -315,6 +315,10 @@ if Cselect == "Catch Whirligigs" then
         useFlowers = true
         basketId = 122497
         flowerId = 52809
+    elseif Ccheck == "Hollyhocks" then
+        useFlowers = true
+        basketId = 122498
+        flowerId = 52810
     elseif Ccheck == "None" then
         -- pass
     else
@@ -327,15 +331,17 @@ if Cselect == "Catch Whirligigs" then
 end
 
 if Cselect == "Cultivate Flowers" then
-    local pickedFlower = API.ScriptDialogWindow2("Flower type", {"Roses", "Iris", "Hydrangea"}, "Start", "Close").Name
+    local pickedFlower = API.ScriptDialogWindow2("Flower type", {"Roses", "Iris", "Hydrangea", "Hollyhocks"}, "Start", "Close").Name
     local useCompost = API.ScriptDialogWindow2("Use ultracompost?", {"Yes", "No"}, "Start", "Close").Name == "Yes"
 
     if pickedFlower == "Roses" then
-        flowerStages = {122504, 122505, 122506, 122507 }
+        flowerStages = { 122504, 122505, 122506, 122507 }
     elseif pickedFlower == "Iris" then
-        flowerStages = {122508, 122509, 122510, 122511 }
+        flowerStages = { 122508, 122509, 122510, 122511 }
     elseif pickedFlower == "Hydrangea" then
-        flowerStages = {122512, 122513, 122514, 122515 }
+        flowerStages = { 122512, 122513, 122514, 122515 }
+    elseif pickedFlower == "Hollyhocks"  then
+        flowerStages = { 122516, 122517, 122518, 122519 }   
     else
         return
     end
