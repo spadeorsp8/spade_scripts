@@ -139,33 +139,44 @@ local function checkForThreats()
     UTILS.randomSleep(1500)
 end
 
-local function cultivateFlowers()
-    if not API.CheckAnim(100) then
-        for i in ipairs(flowerStages) do
-            if findNpcOrObject(flowerStages[i], 5, 0) then
-                print("Found current flower stage!", flowerStages[i])
+local function cultivateFlowers(useCompost)
+    -- TODO: Replace loop with GetAllObjArrayInteract
+    for i in ipairs(flowerStages) do
+        if findNpcOrObject(flowerStages[i], 10, 0) then
+            if i == 1 and useCompost then
+                if not fertilized then
+                    if API.InvItemcount_1(ultraCompostId) <= 0 then
+                        print("Banking for more ultracompost")
+                        API.DoAction_Object1(0x2e, API.OFF_ACT_GeneralObject_route1, {115427}, 50)
+                        while not API.BankOpen2() and API.Read_LoopyLoop() do
+                            UTILS.randomSleep(1000)
+                        end
 
-                if i == 1 then
-                    -- Add Ultracompost if you have it
-                    if API.InvItemcount_1(ultraCompostId) > 0 and not fertilized then
+                        -- Bank preset 1 should include ultracompost; recommend 2 free inv slots for flowers and het
+                        API.KeyboardPress32(0x31, 0)
+                        UTILS.randomSleep(1000)
+                    else
                         print("Adding compost to flowers")
                         API.DoAction_Inventory1(ultraCompostId, 0, 0, API.OFF_ACT_Bladed_interface_route)
+                        API.DoAction_Object1(0x24, API.OFF_ACT_GeneralObject_route00, { flowerStages[i] }, 50)
                         UTILS.randomSleep(500)
-                        API.DoAction_Object1(0x24, API.OFF_ACT_GeneralObject_route00, { flowerStages[i] }, 15)
-                        UTILS.randomSleep(1000)
                         fertilized = true
                     end
-                else
-                    fertilized = false
                 end
+            else
+                fertilized = false
+            end
 
+            if not API.CheckAnim(100) then
+                print("Found current flower stage!", flowerStages[i])
                 if flowerStages[i] ~= actualFlowerStage then
                     actualFlowerStage = flowerStages[i]
                 end
 
-                API.DoAction_Object1(0x5, API.OFF_ACT_GeneralObject_route0, { flowerStages[i] }, 50)
-                break
+                API.DoAction_Object1(0x29, API.OFF_ACT_GeneralObject_route0, { flowerStages[i] }, 50)
             end
+
+            break
         end
     end
 
@@ -174,15 +185,6 @@ end
 
 local function getFritoState()
     return (API.VB_FindPSett(fritoVBId).state)
-end
-
-local function shuffle(table)
-    local length = #table
-
-    for i = length, 2, -1 do
-        local j = math.random(i)
-        table[i], table[j] = table[j], table[i]
-    end
 end
 
 eventIgnoreEndTime = os.time()
@@ -313,6 +315,10 @@ if Cselect == "Catch Whirligigs" then
         useFlowers = true
         basketId = 122497
         flowerId = 52809
+    elseif Ccheck == "None" then
+        -- pass
+    else
+        return
     end
 
     if handleFrito() then
@@ -322,19 +328,21 @@ end
 
 if Cselect == "Cultivate Flowers" then
     local pickedFlower = API.ScriptDialogWindow2("Flower type", {"Roses", "Iris", "Hydrangea"}, "Start", "Close").Name
+    local useCompost = API.ScriptDialogWindow2("Use ultracompost?", {"Yes", "No"}, "Start", "Close").Name == "Yes"
+
     if pickedFlower == "Roses" then
         flowerStages = {122504, 122505, 122506, 122507 }
-    end
-    if pickedFlower == "Iris" then
+    elseif pickedFlower == "Iris" then
         flowerStages = {122508, 122509, 122510, 122511 }
-    end
-    if pickedFlower == "Hydrangea" then
+    elseif pickedFlower == "Hydrangea" then
         flowerStages = {122512, 122513, 122514, 122515 }
+    else
+        return
     end
 
     while API.Read_LoopyLoop() do
         doRandomEvents(20, 45)
         idleCheck()
-        cultivateFlowers()
+        cultivateFlowers(useCompost)
     end
 end
