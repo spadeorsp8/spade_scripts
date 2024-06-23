@@ -17,16 +17,17 @@ local unhandledFrito = 28665
 local useFlowers = false
 local fertilized = false
 local actualFlowerStage = 0
-local maxStack = 5
-local targetBasketLevel = 25
 
-local fritoVBId = 10338
+local MAX_STACK = 5
+local TARGET_BASKET_LVL = 25
+local MAX_IDLE_TIME_MINUTES = 10
+local FRITO_VB = 10338
 
 -- VB value of Frito before handling him
-local unhandledFritoState = 149796
+local UNHANDLED_FRITO_STATE = 149796
 
 -- VB value of Frito after handling, but before giving him orders
-local idleFritoState = 411940
+local IDLE_FRITO_STATE = 411940
 
 local Cselect =
     API.ScriptDialogWindow2(
@@ -47,18 +48,6 @@ local function getBasketQuantity2()
     local mask = 0xFFFFFFFF >> 26
     local flowerBasketCleared = flowerBasket2VB & mask
     return flowerBasketCleared
-end
-
-afk = os.time()
-local MAX_IDLE_TIME_MINUTES = 10
-local function idleCheck()
-    local timeDiff = os.difftime(os.time(), afk)
-    local randomTime = math.random((MAX_IDLE_TIME_MINUTES * 60) * 0.6, (MAX_IDLE_TIME_MINUTES * 60) * 0.9)
-
-    if timeDiff > randomTime then
-        API.PIdle2()
-        afk = os.time()
-    end
 end
 
 local function findNpcOrObject(npcid, distance, objType)
@@ -90,7 +79,7 @@ local function fillBaskets()
         print("Please put at least one flower in each basket and restart the script.")
         API.Write_LoopyLoop(false)
         return
-    elseif basketQuantity <= targetBasketLevel then
+    elseif basketQuantity <= TARGET_BASKET_LVL then
         print ("Time to refill basket, basket quantity: " .. basketQuantity)
         run_to_tile(3383 + math.random(-1,0), 3213 + math.random(-1,0), 0)
         UTILS.randomSleep(5000)
@@ -104,7 +93,7 @@ local function fillBaskets()
     end
 
     basketQuantity = getBasketQuantity2()
-    if basketQuantity <= targetBasketLevel then
+    if basketQuantity <= TARGET_BASKET_LVL then
         print ("Time to refill basket 2, basket quantity: " .. basketQuantity)
         run_to_tile(3376 + math.random(0,1), 3206 + math.random(-1,1), 0)
         UTILS.randomSleep(5000)
@@ -142,7 +131,7 @@ end
 local function cultivateFlowers(useCompost)
     -- TODO: Replace loop with GetAllObjArrayInteract
     for i in ipairs(flowerStages) do
-        if findNpcOrObject(flowerStages[i], 10, 0) then
+        if findNpcOrObject(flowerStages[i], 30, 0) then
             if i == 1 and useCompost then
                 if not fertilized then
                     if API.InvItemcount_1(ultraCompostId) <= 0 then
@@ -184,7 +173,7 @@ local function cultivateFlowers(useCompost)
 end
 
 local function getFritoState()
-    return (API.VB_FindPSett(fritoVBId).state)
+    return (API.VB_FindPSett(FRITO_VB).state)
 end
 
 eventIgnoreEndTime = os.time()
@@ -228,7 +217,7 @@ local function catchWhirlis()
 
     while API.Read_LoopyLoop() do
         doRandomEvents()
-        idleCheck()
+        API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
 
         local fritoState = getFritoState()
         local sleep = 500
@@ -241,7 +230,7 @@ local function catchWhirlis()
                 break
             end
         else
-            if fritoState == idleFritoState then
+            if fritoState == IDLE_FRITO_STATE then
                 -- If we don't want to use flowers, target plain whirligig before stacking
                 print("Frito is ready for new orders.")
                 targetWhirlis = plainWhirlis
@@ -253,11 +242,11 @@ local function catchWhirlis()
 
         local whirliObjs = API.GetAllObjArrayInteract(targetWhirlis, 30, {1})
         if #whirliObjs > 0 then
-            if API.Buffbar_GetIDstatus(52770).conv_text < maxStack then
+            if API.Buffbar_GetIDstatus(52770).conv_text < MAX_STACK then
                 local idx = math.random(1, #whirliObjs)
 
                 fritoState = getFritoState()
-                if fritoState == idleFritoState then
+                if fritoState == IDLE_FRITO_STATE then
                     firstTargetId = 0
                 end
 
@@ -284,14 +273,14 @@ end
 local function handleFrito()
     local fritoState = getFritoState()
 
-    if fritoState == unhandledFritoState then
+    if fritoState == UNHANDLED_FRITO_STATE then
         if API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { unhandledFrito }, 50) then
             print("Frito is now your pet.")
             UTILS.randomSleep(1000)
         else
             return false
         end
-    elseif fritoState == idleFritoState then
+    elseif fritoState == IDLE_FRITO_STATE then
         print("Frito is already your pet.")
     else
         print("Frito is in an invalid starting state.")
@@ -302,7 +291,7 @@ local function handleFrito()
 end
 
 if Cselect == "Catch Whirligigs" then
-    local Ccheck = API.ScriptDialogWindow2("Flower basket?", {"Roses", "Iris", "Hydrangea", "Hollyhocks", "None"}, "Start", "Close").Name
+    local Ccheck = API.ScriptDialogWindow2("Flower basket?", {"Roses", "Iris", "Hydrangea", "Hollyhocks", "Golden Roses", "None"}, "Start", "Close").Name
     if Ccheck == "Roses" then
         useFlowers = true
         basketId = 122495
@@ -319,6 +308,10 @@ if Cselect == "Catch Whirligigs" then
         useFlowers = true
         basketId = 122498
         flowerId = 52810
+    elseif Ccheck == "Golden Roses" then
+        useFlowers = true
+        basketId = 122499
+        flowerId = 52811
     elseif Ccheck == "None" then
         -- pass
     else
@@ -348,7 +341,7 @@ if Cselect == "Cultivate Flowers" then
 
     while API.Read_LoopyLoop() do
         doRandomEvents(20, 45)
-        idleCheck()
+        API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
         cultivateFlowers(useCompost)
     end
 end
