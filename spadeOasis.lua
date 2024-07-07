@@ -177,35 +177,27 @@ local function getFritoState()
 end
 
 eventIgnoreEndTime = os.time()
-
----@param ignoreChance (int): percentage chance events are ignored for the length of ignoreTimeout
----@param ignoreTimeout (int): number of seconds that events will be ignored 
----@return boolean
 local function doRandomEvents(ignoreChance, ignoreTimeout)
     local ignoreChance = ignoreChance or 0
     local ignoreTimeout = ignoreTimeout or 0
-    local eventIDs = { 19884, 26022, 27228, 27297, 28411, 30599, 15451 }
+    local eventIDs = { 19884, 26022, 27228, 27297, 28411, 30599, 15451, 18204, 18205 }
+    local eventObjs = API.GetAllObjArrayInteract(eventIDs, 30, {0, 1, 12})
 
-    for _, id in ipairs(eventIDs) do
-        if #API.GetAllObjArray1({ id }, 30, { 0, 1, 12 }) > 0 then
-            if os.time() < eventIgnoreEndTime then
-                -- If we're currently ignoring events, return early
-                return false
-            end
+    if #eventObjs <= 0 or os.time() < eventIgnoreEndTime then
+        return false
+    end
 
-            if math.random(100) > (100 - ignoreChance) then
-                print(string.format("Ignoring events for the next %d seconds", ignoreTimeout))
-                eventIgnoreEndTime = os.time() + ignoreTimeout
-                return false
-            end
+    if math.random(100) > (100 - ignoreChance) then
+        print(string.format("Ignoring events for the next %d seconds", ignoreTimeout))
+        eventIgnoreEndTime = os.time() + ignoreTimeout
+        return false
+    end
 
-            print("Clicking event! ID: " .. id)
-            UTILS.randomSleep(800, 0, 400)
-            if API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { id }, 30) then
-                UTILS.randomSleep(800,0,400)
-                return true
-            end
-        end
+    print("Clicking random event!")
+    UTILS.randomSleep(1000, 250, 500)
+    if API.DoAction_NPC__Direct(0x29, API.OFF_ACT_InteractNPC_route, eventObjs[1]) then
+        UTILS.randomSleep(500, 100, 250)
+        return true
     end
 
     return false
@@ -216,7 +208,7 @@ local function catchWhirlis()
     local targetWhirlis = allWhirliIDs
 
     while API.Read_LoopyLoop() do
-        doRandomEvents()
+        doRandomEvents(10, 30)
         API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
 
         local fritoState = getFritoState()
