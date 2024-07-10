@@ -19,6 +19,7 @@ local TREE_STR = "Ivy"
 
 local function waitForStillness()
     while (API.CheckAnim(100) or API.ReadPlayerMovin2() or API.isProcessing()) and API.Read_LoopyLoop() do
+        API.DoRandomEvents()
         API.RandomSleep2(1000, 250, 500)
     end
 end
