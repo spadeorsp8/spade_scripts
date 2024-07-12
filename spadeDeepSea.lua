@@ -13,7 +13,10 @@ local MAX_IDLE_TIME_MINUTES = 10
 API.SetDrawTrackedSkills(true)
 API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
 
-FISH_STR = API.ScriptDialogWindow2("Fish to catch", {"Minnow shoal", "Swarm", "Green blubber jellyfish", "Blue blubber jellyfish", "Sailfish"}, "Start", "Close").Name
+TARGET_FISH = { API.ScriptDialogWindow2("Fish to catch", {"Minnow shoal", "Swarm", "Green blubber jellyfish", "Blue blubber jellyfish", "Sailfish", "Fishing Frenzy"}, "Start", "Close").Name }
+if TARGET_FISH[1] == "Fishing Frenzy" then
+    TARGET_FISH = {"Fish", "Calm fish", "Frenzy fish"}
+end
 
 local function getClosestObj(objVect)
     local closestObj, smallestDist = nil, nil
@@ -42,12 +45,13 @@ local function bank()
         API.DoAction_Object_Direct(0x29, API.OFF_ACT_GeneralObject_route2, chosenBank)
     end
 
+    API.RandomSleep2(1000, 250, 500)
     return true
 end
 
 local function chooseFish()
     for _, dist in ipairs({15, 30}) do
-        local fish = API.GetAllObjArrayInteract_str({ FISH_STR }, dist, { 1 })
+        local fish = API.GetAllObjArrayInteract_str(TARGET_FISH, dist, { 1 })
         if #fish > 0 then
             return fish[math.random(1, #fish)]
         end
@@ -64,7 +68,7 @@ local STATES = {
         callback = function() return bank() end
     },
     {
-        desc = string.format("Catching %s", FISH_STR),
+        desc = string.format("Catching %s", TARGET_FISH[1]),
         pre = function() return (chooseFish() ~= nil) end,
         callback = function() API.DoAction_NPC__Direct(0x3c, API.OFF_ACT_InteractNPC_route, chooseFish()) return true end
     }
@@ -78,7 +82,7 @@ end
 while API.Read_LoopyLoop() do
     API.DoRandomEvents()
 
-    if (not (API.CheckAnim(100) or API.ReadPlayerMovin2() or API.isProcessing())) or API.DeBuffbar_GetIDstatus(33045, false).conv_text > 0 then
+    if (not (API.CheckAnim(25) or API.ReadPlayerMovin2() or API.isProcessing())) or API.DeBuffbar_GetIDstatus(33045, false).conv_text > 0 then
         local timeout = os.time() + 30
         if STATES[state].pre and not STATES[state].pre() then
             goto continue
@@ -97,5 +101,5 @@ while API.Read_LoopyLoop() do
         state = (state % #STATES) + 1
     end
 
-    API.RandomSleep2(1000, 500, 1000)
+    API.RandomSleep2(500, 500, 1000)
 end
