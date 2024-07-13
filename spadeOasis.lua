@@ -111,7 +111,7 @@ local function checkForThreats()
     if findNpcOrObject(7620, 10, 4) then
         print("Nutritous gas inbound.")
 
-        API.DoAction_Object1(0x5, API.OFF_ACT_GeneralObject_route0, { actualFlowerStage }, 50)
+        API.DoAction_Object1(0x29, API.OFF_ACT_GeneralObject_route0, { actualFlowerStage }, 50)
         UTILS.randomSleep(1000)
 
         print("Threats clear")
