@@ -30,7 +30,7 @@ local function goToLodestone(lode)
     print('Teleporting to ', UTILS.GetLabelFromArgument(lode, LODESTONES.LODESTONE))
 
     LODESTONES.openLodestonesInterface()
-    API.RandomSleep2(500, 250, 500)
+    API.RandomSleep2(1000, 500, 1000)
     API.DoAction_Interface(0xffffffff, 0xffffffff, 1, 1092, lode.id, -1, API.OFF_ACT_GeneralInterface_route)
     while API.Math_DistanceW(lode.loc, API.PlayerCoord()) > 100 and API.Read_LoopyLoop() do
         API.RandomSleep2(1000, 250, 500)
