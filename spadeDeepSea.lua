@@ -9,6 +9,7 @@
 local API = require("api")
 
 local MAX_IDLE_TIME_MINUTES = 10
+local FISHING_NOTE = 42286
 
 API.SetDrawTrackedSkills(true)
 API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
@@ -60,8 +61,21 @@ local function chooseFish()
     return nil
 end
 
+local function redeemFishingNotes()
+    while API.InvItemcount_1(FISHING_NOTE) > 0 do
+        API.DoAction_Inventory1(FISHING_NOTE, 0, 1, API.OFF_ACT_GeneralInterface_route)
+        API.RandomSleep2(1000, 250, 500)
+        API.DoAction_Interface(0xffffffff, 0xffffffff, 0, 847, 22, -1, API.OFF_ACT_GeneralInterface_Choose_option)
+    end
+end
+
 state = 1
 local STATES = {
+    {
+        desc = "Redeeming fishing notes",
+        pre = function() return API.InvItemcount_1(FISHING_NOTE) > 0 end,
+        callback = function() redeemFishingNotes() return true end
+    },
     {
         desc = "Banking",
         pre = function() return API.InvFull_() end,
