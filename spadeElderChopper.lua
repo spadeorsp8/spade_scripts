@@ -11,20 +11,19 @@ local API = require("api")
 local UTILS = require("utils")
 local LODESTONES = require("lodestones")
 
+local BANK_THRESH = 9
+local MAX_IDLE_TIME_MINUTES = 10
+
+i = 1
+locationIdx = 0
+local LOCATIONS = {
+    { LODESTONES.LODESTONE.YANILLE, 2561, 3068 },
+    { LODESTONES.LODESTONE.VARROCK, 3250, 3366 },
+    { LODESTONES.LODESTONE.EDGEVILLE, 3090, 3456 }
+}
+
 API.SetDrawTrackedSkills(true)
-
-i = 0
-local BANK_INTERVAL = 3 -- Number of full loops between banking
-local MAX_IDLE_TIME_MINUTES = 5
-
-local function waitForStillness()
-    API.RandomSleep2(2000, 250, 500)
-    while (API.CheckAnim(100) or API.ReadPlayerMovin2() or API.isProcessing()) and API.Read_LoopyLoop() do
-        API.DoRandomEvents()
-        API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
-        API.RandomSleep2(1000, 250, 500)
-    end
-end
+API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
 
 local function goToLodestone(lode)
     print('Teleporting to ', UTILS.GetLabelFromArgument(lode, LODESTONES.LODESTONE))
@@ -35,58 +34,42 @@ local function goToLodestone(lode)
     while API.Math_DistanceW(lode.loc, API.PlayerCoord()) > 100 and API.Read_LoopyLoop() do
         API.RandomSleep2(1000, 250, 500)
     end
-
-    waitForStillness()
 end
 
-local function goToTree(lodestone, nearbyTile)
-    goToLodestone(lodestone)
-    if not API.Read_LoopyLoop() then return end
-
-    API.DoAction_Tile(nearbyTile)
-    waitForStillness()
+local function openBank()
+    if LOCATIONS[locationIdx][1] == LODESTONES.LODESTONE.EDGEVILLE and i >= BANK_THRESH then
+        local bankCounters = API.GetAllObjArrayInteract_str({ "Counter" }, 50, { 12 })
+        API.DoAction_Object_Direct(0x5, API.OFF_ACT_GeneralObject_route1, bankCounters[math.random(1, #bankCounters)])
+        i = 0
+    end
 end
 
-local function chopTree()
-    API.DoAction_Object_string1(0x3b, API.OFF_ACT_GeneralObject_route0, { "Elder tree" }, 50, true)
-    waitForStillness()
-
-    API.KeyboardPress32(0x31, 0) -- Press '1' to fill wood box on action bar slot 1
-    API.RandomSleep2(1000, 250, 500)
+local function loadPreset()
+    if i == 0 then
+        API.KeyboardPress32(0x33, 0)
+        API.RandomSleep2(500, 250, 500)
+        API.KeyboardPress32(0x31, 0)
+    end
 end
 
-local function bank()
-    local bankCounters = API.GetAllObjArrayInteract_str({ "Counter" }, 50, { 12 })
-    API.DoAction_Object_Direct(0x5, API.OFF_ACT_GeneralObject_route1, bankCounters[math.random(1, #bankCounters)])
-    waitForStillness()
-
-    API.KeyboardPress32(0x33, 0) -- Press '3' to empty inventory into bank
-    API.RandomSleep2(500, 250, 500)
-    API.KeyboardPress32(0x31, 0) -- Press '1' to load preset 1
-    API.RandomSleep2(500, 250, 500)
-end
-
-local TRANSITIONS = {
-    function() goToTree(LODESTONES.LODESTONE.YANILLE, WPOINT.new(2561 + math.random(1, 5), 3068 + math.random(1, 5), 0)) end,
-    function() goToTree(LODESTONES.LODESTONE.VARROCK, WPOINT.new(3250 + math.random(1, 5), 3366 + math.random(1, 5), 0)) end,
-    function() goToTree(LODESTONES.LODESTONE.EDGEVILLE, WPOINT.new(3090 + math.random(1, 5), 3456 + math.random(1, 5), 0)) end
+action = 1
+local ACTIONS = {
+    function() locationIdx = (locationIdx % #LOCATIONS) + 1 end,
+    function() goToLodestone(LOCATIONS[locationIdx][1]) end,
+    function() API.DoAction_Tile(WPOINT.new(LOCATIONS[locationIdx][2] + math.random(1, 5), LOCATIONS[locationIdx][3] + math.random(1, 5), 0)) end,
+    function() API.DoAction_Object_string1(0x3b, API.OFF_ACT_GeneralObject_route0, { "Elder tree" }, 50, true) end,
+    function() API.KeyboardPress32(0x31, 0) end,
+    function() openBank() end,
+    function() loadPreset() i = i + 1 end
 }
 
 while API.Read_LoopyLoop() do
-    for _, move in ipairs(TRANSITIONS) do
-        if not API.Read_LoopyLoop() then goto exit end
-        move()
-        chopTree()
+    API.DoRandomEvents()
+
+    if not (API.CheckAnim(100) or API.ReadPlayerMovin2() or API.isProcessing()) then
+        ACTIONS[action]()
+        action = (action % #ACTIONS) + 1
     end
 
-    -- TODO: Make this more intelligent to bank only when necessary
-    i = i + 1
-    if i >= BANK_INTERVAL then
-        bank()
-        i = 0
-    end
-
-    API.RandomSleep2(2000, 500, 1000)
+    API.RandomSleep2(500, 250, 500)
 end
-
-::exit::
