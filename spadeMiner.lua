@@ -1,16 +1,19 @@
 --[[
-@title Prif Rune Miner BETA
+@title Spade Miner BETA
 @author Spade
 
-* Start script near rune rocks in Prif
-* Supports drinking perfect juju mining potions and recharging GOTE if porters are in inventory
+* Update ROCKS table with IDs of actual rocks you want to mine
+* Start script near rocks you want to mine
+
+Note: Supports drinking perfect juju mining potions and recharging GOTE if porters are in inventory
 --]]
 
 local API = require('api')
 
 local MAX_IDLE_TIME_MINUTES = 10
 local POTIONS = {32769, 32771, 32773, 32775}
-local ROCKS = { 112963, 112964 }
+-- local ROCKS = { 112963, 112964 }
+local ROCKS = { 113206, 113207, 113208 }
 local HIGHLIGHTS = { 7164, 7165 }
 
 API.SetDrawTrackedSkills(true)
@@ -64,9 +67,9 @@ local function takeMiningPot()
 end
 
 local function FindHl(objects, maxdistance, highlight)
-    for _, obj in ipairs(API.GetAllObjArray1(objects, maxdistance, {0})) do
+    for _, obj in ipairs(API.GetAllObjArray1(objects, maxdistance, {0, 12})) do
         for _, hl in ipairs(API.GetAllObjArray1(highlight, maxdistance, {4})) do
-            if math.abs(obj.Tile_XYZ.x - hl.Tile_XYZ.x) == 0 and math.abs(obj.Tile_XYZ.y - hl.Tile_XYZ.y) == 0 then
+            if math.abs(obj.Tile_XYZ.x - hl.Tile_XYZ.x) <= 1 and math.abs(obj.Tile_XYZ.y - hl.Tile_XYZ.y) <= 1 then
                 return obj
             end
         end
@@ -75,19 +78,19 @@ local function FindHl(objects, maxdistance, highlight)
     return nil
 end
 
-clickedRockId = nil
+clickedRock = nil
 while API.Read_LoopyLoop() do
     API.DoRandomEvents()
 
     takeMiningPot()
     keepGOTEcharged()
-    API.RandomSleep2(1000, 250, 500)
 
     local shinyRock = FindHl(ROCKS, 50, HIGHLIGHTS)
     if shinyRock then
-        if clickedRockId ~= shinyRock.Id then
+        if not clickedRock or API.Math_DistanceF(clickedRock, shinyRock) ~= 0 then
+            API.RandomSleep2(500, 1000, 1500)
             API.DoAction_Object_Direct(0x3a, API.OFF_ACT_GeneralObject_route0, shinyRock)
-            clickedRockId = shinyRock.Id
+            clickedRock = shinyRock
         end
     else
         if not API.CheckAnim(25) then
