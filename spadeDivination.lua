@@ -135,47 +135,7 @@ local enrichedWisp = nil
 local enrichedSpring = nil
 local harvestingEnriched = false
 
-afk = os.time()
-local function idleCheck()
-    local timeDiff = os.difftime(os.time(), afk)
-    local randomTime = math.random((MAX_IDLE_TIME_MINUTES * 60) * 0.6, (MAX_IDLE_TIME_MINUTES * 60) * 0.9)
-
-    if timeDiff > randomTime then
-        API.PIdle2()
-        afk = os.time()
-    end
-end
-
-eventIgnoreEndTime = os.time()
-
----@param ignoreChance (int): percentage chance events are ignored for the length of ignoreTimeout
----@param ignoreTimeout (int): number of seconds that events will be ignored 
----@return boolean
-local function doRandomEvents(ignoreChance, ignoreTimeout)
-    local ignoreChance = ignoreChance or 0
-    local ignoreTimeout = ignoreTimeout or 0
-    local eventIDs = { 19884, 26022, 27228, 27297, 28411, 30599, 15451, 18204, 18205 }
-    local eventObjs = API.GetAllObjArrayInteract(eventIDs, 30, {0, 1, 12})
-
-    if #eventObjs <= 0 or os.time() < eventIgnoreEndTime then
-        return false
-    end
-
-    if math.random(100) > (100 - ignoreChance) then
-        print(string.format("Ignoring events for the next %d seconds", ignoreTimeout))
-        eventIgnoreEndTime = os.time() + ignoreTimeout
-        return false
-    end
-
-    print("Clicking random event!")
-    UTILS.randomSleep(1000, 250, 500)
-    if API.DoAction_NPC__Direct(0x29, API.OFF_ACT_InteractNPC_route, eventObjs[1]) then
-        UTILS.randomSleep(500, 100, 250)
-        return true
-    end
-
-    return false
-end
+API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
 
 local fullInvInterface = {
     InterfaceComp5.new(1186, 2, -1, -1, 0),
@@ -224,10 +184,10 @@ local function harvest(wispId, springId)
 end
 
 local function getEnergy()
-    if not harvestingEnriched or (harvestingEnriched and not API.CheckAnim(100)) then
+    if not harvestingEnriched or (harvestingEnriched and not (API.CheckAnim(50) or API.ReadPlayerMovin2())) then
         if harvest(enrichedWisp, enrichedSpring) then
             harvestingEnriched = true
-            API.RandomSleep2(1000, 500, 750)
+            return
         end
     end
 
@@ -237,32 +197,28 @@ local function getEnergy()
         API.RandomSleep2(500, 250, 500)
     end
 
-    if not API.CheckAnim(100) then
+    if not (API.CheckAnim(50) or API.ReadPlayerMovin2()) then
         harvestingEnriched = false
         harvest(selectedWisp, selectedSpring)
     end
 end
 
 local function useEnergy()
-    for _, id in ipairs(RIFT_IDS) do
-        if #API.GetAllObjArray1({ id }, 50, { 0, 1, 12 }) > 0 then
-            if getInvFragment() ~= 0 and EMPOWER_RIFT then
-                API.DoAction_Object1(0x29, API.OFF_ACT_GeneralObject_route2, { id }, 50)
-                API.RandomSleep2(500, 250, 500)
-            end
+    if getInvFragment() ~= 0 and EMPOWER_RIFT then
+        API.DoAction_Object1(0x29, API.OFF_ACT_GeneralObject_route2, RIFT_IDS, 50)
 
-            print("Adding energy to rift")
-            API.DoAction_Object1(0xc8, API.OFF_ACT_GeneralObject_route0, { id }, 50)
-            API.RandomSleep2(1000, 500, 750)
-            break
+        while (API.CheckAnim(50) or API.ReadPlayerMovin2()) do
+            API.RandomSleep2(500, 250, 500)
         end
     end
+
+    print("Adding energy to rift")
+    API.DoAction_Object1(0xc8, API.OFF_ACT_GeneralObject_route0, RIFT_IDS, 50)
 end
 
 setupMenu()
 while API.Read_LoopyLoop() do
-    doRandomEvents(10, 30)
-    idleCheck()
+    API.DoRandomEvents()
 
     if (menu.return_click) then
         menu.return_click = false
