@@ -137,6 +137,37 @@ local harvestingEnriched = false
 
 API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
 
+eventIgnoreEndTime = os.time()
+
+---@param ignoreChance (int): percentage chance events are ignored for the length of ignoreTimeout
+---@param ignoreTimeout (int): number of seconds that events will be ignored 
+---@return boolean
+local function doRandomEvents(ignoreChance, ignoreTimeout)
+    local ignoreChance = ignoreChance or 0
+    local ignoreTimeout = ignoreTimeout or 0
+    local eventIDs = { 19884, 26022, 27228, 27297, 28411, 30599, 15451, 18204, 18205 }
+    local eventObjs = API.GetAllObjArrayInteract(eventIDs, 30, {0, 1, 12})
+
+    if #eventObjs <= 0 or os.time() < eventIgnoreEndTime then
+        return false
+    end
+
+    if math.random(100) > (100 - ignoreChance) then
+        print(string.format("Ignoring events for the next %d seconds", ignoreTimeout))
+        eventIgnoreEndTime = os.time() + ignoreTimeout
+        return false
+    end
+
+    print("Clicking random event!")
+    UTILS.randomSleep(1000, 250, 500)
+    if API.DoAction_NPC__Direct(0x29, API.OFF_ACT_InteractNPC_route, eventObjs[1]) then
+        UTILS.randomSleep(500, 100, 250)
+        return true
+    end
+
+    return false
+end
+
 local fullInvInterface = {
     InterfaceComp5.new(1186, 2, -1, -1, 0),
 }
@@ -218,7 +249,7 @@ end
 
 setupMenu()
 while API.Read_LoopyLoop() do
-    API.DoRandomEvents()
+    doRandomEvents()
 
     if (menu.return_click) then
         menu.return_click = false
