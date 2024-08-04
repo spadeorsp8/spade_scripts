@@ -86,8 +86,8 @@ while API.Read_LoopyLoop() do
     keepGOTEcharged()
 
     local shinyRock = FindHl(ROCKS, 50, HIGHLIGHTS)
-    if shinyRock then
-        if not clickedRock or API.Math_DistanceF(clickedRock, shinyRock) ~= 0 then
+    if shinyRock then        
+        if not clickedRock or API.Math_DistanceF(clickedRock.Tile_XYZ, shinyRock.Tile_XYZ) ~= 0 then
             API.RandomSleep2(500, 1000, 1500)
             API.DoAction_Object_Direct(0x3a, API.OFF_ACT_GeneralObject_route0, shinyRock)
             clickedRock = shinyRock
