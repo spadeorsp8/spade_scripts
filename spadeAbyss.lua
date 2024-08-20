@@ -17,13 +17,8 @@ local LOOT = { 592, 7937 }
 local NPCS = { 2265, 2264, 2263 }
 local TRAINING_SPOT = WPOINT.new(3059, 4812, 0)
 
-local function moveToTrainingSpot(useDive)
+local function moveToTrainingSpot()
     print("Running to training spot")
-    if useDive then
-        API.DoAction_Dive_Tile(TRAINING_SPOT)
-        API.RandomSleep2(2000, 500, 1000)
-    end
-    
     API.DoAction_Tile(TRAINING_SPOT)
     API.RandomSleep2(1000, 250, 500)
     while API.ReadPlayerMovin2() and API.Read_LoopyLoop() do
@@ -34,7 +29,7 @@ local function moveToTrainingSpot(useDive)
     API.DoAction_NPC(0x2a, API.OFF_ACT_AttackNPC_route, NPCS, 2)
 end
 
-moveToTrainingSpot(false)
+moveToTrainingSpot()
 while API.Read_LoopyLoop() do
     if API.GetGameState2() ~=3 or not API.PlayerLoggedIn() then
         print("Bad game state, exiting.")
@@ -56,7 +51,7 @@ while API.Read_LoopyLoop() do
         -- Open loot window and move back to training spot
         if API.DoAction_Loot_w(LOOT, 3, API.PlayerCoordfloat(), 10) then
             API.RandomSleep2(1000, 250, 500)
-            moveToTrainingSpot(false)
+            moveToTrainingSpot()
         end
     else
         if math.random(1, 100) <= 5 then
@@ -79,7 +74,7 @@ while API.Read_LoopyLoop() do
             API.RandomSleep2(1000, 250, 500)
         end
 
-        moveToTrainingSpot(true)
+        moveToTrainingSpot()
     end
 
     API.RandomSleep2(1000, 250, 500)
