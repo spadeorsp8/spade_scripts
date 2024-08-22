@@ -47,6 +47,7 @@ while API.Read_LoopyLoop() do
         API.RandomSleep2(1000, 250, 500)
     end
 
+    -- TODO: Convert to state machine to get rid of while loop sleeps
     if not API.LootWindowOpen_2() then
         -- Open loot window and move back to training spot
         if API.DoAction_Loot_w(LOOT, 3, API.PlayerCoordfloat(), 10) then
