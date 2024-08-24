@@ -11,8 +11,10 @@ TYPES.buffs = {
     }
 }
 
+-- NOTE: All interface options in the smithing window share the same primary interface ID (37)
+
 TYPES.itemLevels = {
-    -- LEVEL_NAME = {<level index>, <interface index>}
+    -- LEVEL_NAME = {<level index>, <interface index 2>}
     BASE = {1, 149},
     I = {2, 161},
     II = {3, 159},
@@ -23,13 +25,27 @@ TYPES.itemLevels = {
 }
 
 TYPES.options = {
+--[[ Example:
+    BAR_NAME = {
+        bar = {item ID, if index 2, if index 3, smithing ID (VB 8332 value)},
+        items = {
+            ITEM_NAME = {
+                id = item ID,
+                levels = {"BASE", "I", "II", "III", "IV", "V", "BURIAL"} -- subset of this table,
+                ifidx = {if idx 2, if idx 3},
+                stack = <number of items created per bar in a stack> -- only specify this field if the item is stackable
+            },
+            ...
+        }
+    },
+]]
     RUNE = {
         bar = {2363, 52, 11, 1495}, -- {item id, if idx 2, if idx 3, smithing id}
         items = {
             DART_TIP = {
                 id = 824,
                 levels = {"BASE"},
-                ifidx = {136, 3},
+                ifidx = {136, 3},   -- {if idx 2, if idx 3}
                 stack = 50,
             },
         }

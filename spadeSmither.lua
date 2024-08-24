@@ -1,6 +1,21 @@
 --[[
-@title Spade Smither - WORK IN PROGRESS - NOT WORKING YET
+@title Spade Smither
 @author Spade
+
+NOTE: Please make sure you have enough bars in storage to make the items you select. I do not check storage reserves yet.
+
+* Start script near Fort Forinthry workshop (with powerburst and perfect juju smithing potions in your inventory if you want).
+* Select:
+    * Bar type
+    * Item
+    * Goal item level: base through +5 depending on the item; burial is not supported at the Fort
+    * Starting item level: item level to start smithing at. Examples:
+        * Starting from scratch: choose "BAR"
+        * Starting from existing items in your inventory: choose the lowest level of the item(s)/unfinished item(s) in your inventory.
+    * Quantity: quantity of the item at goal level that you want to exist by the end of the script.
+        * NOTE: If you start with items in your inventory that are already at your goal level, they must be included in this quantity value.
+        * NOTE: For stackable items that create multiples per bar, this is the number of bars you want to use.
+            * Ex. Dart tips produce x50 per bar. For 100 dart tips, enter '2' for quantity.
 --]]
 
 local API = require("api")
@@ -18,13 +33,13 @@ local OPTIONS = TYPES.options
 local ITEM_LEVELS = TYPES.itemLevels
 local BUFFS = TYPES.buffs
 
-local SMITH_INTERFACE = {
+local SMITHING_IFACE = {
     InterfaceComp5.new(37, 17, -1, -1, 0),
     InterfaceComp5.new(37, 18, -1, 17, 0)
 }
 
 local function smithingInterfacePresent()
-    return #API.ScanForInterfaceTest2Get(true, SMITH_INTERFACE) > 0
+    return #API.ScanForInterfaceTest2Get(true, SMITHING_IFACE) > 0
 end
 
 local function takePots()
@@ -35,7 +50,7 @@ local function takePots()
                 if API.InvItemcount_1(pot) > 0 then
                     print(string.format("Drinking %s potion!", name))
                     API.DoAction_Inventory1(pot, 0, 1, API.OFF_ACT_GeneralInterface_route)
-                    API.RandomSleep2(250, 500, 750)
+                    API.RandomSleep2(500, 500, 750)
                     break
                 end
             end
@@ -134,23 +149,13 @@ if GOAL_LEVEL then
 end
 
 -- Quantity Choice
-local QUANTITY = tonumber(API.ScriptAskBox("Quantity of Items:", false)[1])
-
-local currentLevelIdx = 0
-if STARTING_LEVEL then
-    if ITEM_LEVELS[STARTING_LEVEL][1] > ITEM_LEVELS[GOAL_LEVEL][1] then
-        print("Starting level must be <= goal level!")
-        return
-    end
-
-    currentLevelIdx = ITEM_LEVELS[STARTING_LEVEL][1]
-end
+local quantity = tonumber(API.ScriptAskBox("Quantity of Items:", false)[1])
 
 local function getItemsToMake(level)
     local item = OPTIONS[BAR_SELECTION].items[ITEM_SELECTION]
-    local quantity = (QUANTITY - API.InvItemcount_1(UNFINISHED_ITEM))
+    local itemsToMake = (quantity - API.InvItemcount_1(UNFINISHED_ITEM))
     if level == 0 or item.stack then
-        return quantity
+        return itemsToMake
     end
 
     local finishedItemName = string.lower(ITEM_SELECTION)
@@ -170,19 +175,41 @@ local function getItemsToMake(level)
 
         for _, v in ipairs(API.ReadInvArrays33()) do
             if string.find(v.textitem, tempItemName .. "$") then
-                quantity = quantity - 1
+                itemsToMake = itemsToMake - 1
             end
         end
     end
 
-    return quantity
+    return itemsToMake
 end
 
-if QUANTITY <= 0 or getItemsToMake(currentLevelIdx + 1) > API.Invfreecount_() then
-    -- TODO: Add support for banking to support more than one inventory of items at a time
-    -- TODO: Before adding support for banking, allow this to not be the case if the item is stackable
-    print(string.format("Please enter a positive quantity <= %d", API.Invfreecount_()))
+local STARTING_LEVEL_IDX = 0
+if STARTING_LEVEL then
+    if ITEM_LEVELS[STARTING_LEVEL][1] > ITEM_LEVELS[GOAL_LEVEL][1] then
+        print("Starting level must be <= goal level!")
+        return
+    end
+
+    STARTING_LEVEL_IDX = ITEM_LEVELS[STARTING_LEVEL][1]
+end
+
+local currentLevelIdx = STARTING_LEVEL_IDX
+local backlogCount = 0
+
+if quantity <= 0 then
+    print("Please enter a positive quantity!")
     return
+end
+
+if getItemsToMake(currentLevelIdx + 1) > API.Invfreecount_() then
+    if OPTIONS[BAR_SELECTION].items[ITEM_SELECTION].stack then
+        backlogCount = quantity - API.Invfreecount_()
+        quantity = API.Invfreecount_()
+    else
+        -- TODO: Add support for banking to create more than one inventory of items per run
+        print(string.format("Please enter a positive quantity <= %d", API.Invfreecount_()))
+        return
+    end
 end
 
 local function makeUnfinishedItems()
@@ -190,9 +217,15 @@ local function makeUnfinishedItems()
     local item = OPTIONS[BAR_SELECTION].items[ITEM_SELECTION]
     local unfinishedItemCount = API.InvItemcount_1(UNFINISHED_ITEM)
 
-    if currentLevelIdx >= ITEM_LEVELS[GOAL_LEVEL][1] then
-        API.Write_LoopyLoop(false)
-        return
+    if currentLevelIdx >= ITEM_LEVELS[GOAL_LEVEL][1] then        
+        if item.stack and backlogCount > 0 then
+            quantity = math.min(backlogCount, API.Invfreecount_())
+            backlogCount = backlogCount - quantity
+            currentLevelIdx = STARTING_LEVEL_IDX
+        else
+            API.Write_LoopyLoop(false)
+            return
+        end
     end
     currentLevelIdx = currentLevelIdx + 1
 
@@ -235,9 +268,8 @@ local function makeUnfinishedItems()
 
     -- Choose level
     local currentSelectedLevel = ((API.VB_FindPSettinOrder(8329, -1).state - 4) / 4096) + 1
-
-    -- Burial value is stored differently from the rest
     if currentSelectedLevel == 51 then
+        -- Burial value is stored differently from the rest
         currentSelectedLevel = 7
     end
 
@@ -300,7 +332,7 @@ local STATES = {
     },
 }
 
-print(string.format("%s %s (%d)", BAR_SELECTION, ITEM_SELECTION, QUANTITY))
+print(string.format("%s %s (%d)", BAR_SELECTION, ITEM_SELECTION, quantity))
 if STARTING_LEVEL then print(string.format("Starting item level = %s", STARTING_LEVEL)) end
 if GOAL_LEVEL then print(string.format("Goal item level = %s", GOAL_LEVEL)) end
 
