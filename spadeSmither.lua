@@ -8,11 +8,8 @@ NOTE: Please make sure you have enough bars in storage to make the items you sel
 * Select:
     * Bar type
     * Item
-    * Goal item level: base through +5 depending on the item; burial is not supported at the Fort
-    * Starting item level: item level to start smithing at. Examples:
-        * Starting from scratch: choose "BAR"
-        * Starting from existing items in your inventory: choose the lowest level of the item(s)/unfinished item(s) in your inventory.
-    * Quantity: quantity of the item at goal level that you want to exist by the end of the script.
+    * Goal item level: base through +5 depending on the item; burial is not supported at the Fort.
+    * Quantity: quantity of the item at goal level that you want to exist by the end of the script run.
         * NOTE: If you start with items in your inventory that are already at your goal level, they must be included in this quantity value.
         * NOTE: For stackable items that create multiples per bar, this is the number of bars you want to use.
             * Ex. Dart tips produce x50 per bar. For 100 dart tips, enter '2' for quantity.
@@ -35,6 +32,7 @@ local ITEM_LEVELS = TYPES.itemLevels
 local BUFFS = TYPES.buffs
 
 local backlogCount = 0
+local currentLevelIdx = 0
 
 local SMITHING_IFACE = {
     InterfaceComp5.new(37, 17, -1, -1, 0),
@@ -53,7 +51,7 @@ local function takePots()
                 if API.InvItemcount_1(pot) > 0 then
                     print(string.format("Drinking %s potion!", name))
                     API.DoAction_Inventory1(pot, 0, 1, API.OFF_ACT_GeneralInterface_route)
-                    API.RandomSleep2(500, 500, 750)
+                    API.RandomSleep2(1000, 500, 750)
                     break
                 end
             end
@@ -136,21 +134,6 @@ if #OPTIONS[BAR_SELECTION].items[ITEM_SELECTION].levels > 1 then
     end
 end
 
--- Starting Level Choice
-local STARTING_LEVEL = nil
-if GOAL_LEVEL then
-    local STARTING_LEVELS = {"BAR"}
-    for _, v in ipairs(OPTIONS[BAR_SELECTION].items[ITEM_SELECTION].levels) do
-        table.insert(STARTING_LEVELS, v)
-    end
-
-    STARTING_LEVEL = API.ScriptDialogWindow2("Starting Item Level", STARTING_LEVELS, "Start", "Close").Name
-    if not valueInTable(STARTING_LEVEL, STARTING_LEVELS) then
-        return
-    end
-    if STARTING_LEVEL == "BAR" then STARTING_LEVEL = nil end
-end
-
 -- Quantity Choice
 local quantity = tonumber(API.ScriptAskBox("Quantity of Items:", false)[1])
 if quantity <= 0 then
@@ -191,25 +174,6 @@ local function getItemsToMake(level)
     return itemsToMake
 end
 
-local STARTING_LEVEL_IDX = 0
-if STARTING_LEVEL then
-    if ITEM_LEVELS[STARTING_LEVEL][1] > ITEM_LEVELS[GOAL_LEVEL][1] then
-        print("Starting level must be <= goal level!")
-        return
-    end
-
-    STARTING_LEVEL_IDX = ITEM_LEVELS[STARTING_LEVEL][1]
-end
-
-local currentLevelIdx = STARTING_LEVEL_IDX
-
---[[ TODO: Remove this
-    * For non-stacking: (quantity - getItemsToMake(currentLevelIdx + 1)) = pre-made items in inventory
-    * First inventory items made = (pre-made items) + API.Invfreecount_()
-    * backlogCount = quantity - (first inventory items made)
-    * quantity = first inventory items made
-]]
-
 local function updateBacklog()
     if getItemsToMake(currentLevelIdx + 1) > API.Invfreecount_() then
         -- Backlog count excludes pre-made items in inventory and free inventory space
@@ -237,11 +201,9 @@ local function makeUnfinishedItems()
             end
 
             quantity = backlogCount
+            backlogCount = 0
+            currentLevelIdx = 0
             updateBacklog()
-
-            -- TODO: Could we get rid of the starting level idx argument altogether since we skip levels that have 0 items to make now?
-            -- TODO: i.e. always start at level 1 and allow it to skip to the proper level
-            currentLevelIdx = STARTING_LEVEL_IDX
         else
             API.Write_LoopyLoop(false)
             return
@@ -355,7 +317,6 @@ local STATES = {
 updateBacklog()
 
 print(string.format("%s %s (%d)", BAR_SELECTION, ITEM_SELECTION, quantity))
-if STARTING_LEVEL then print(string.format("Starting item level = %s", STARTING_LEVEL)) end
 if GOAL_LEVEL then print(string.format("Goal item level = %s", GOAL_LEVEL)) end
 
 if #API.GetAllObjArray1({ FORGE, ANVIL }, 50, { 0 }) <= 0 then
