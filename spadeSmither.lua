@@ -28,10 +28,13 @@ API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
 local UNFINISHED_ITEM = 47068
 local FORGE = 125136
 local ANVIL = 125135
+local BANK = 125115
 
 local OPTIONS = TYPES.options
 local ITEM_LEVELS = TYPES.itemLevels
 local BUFFS = TYPES.buffs
+
+local backlogCount = 0
 
 local SMITHING_IFACE = {
     InterfaceComp5.new(37, 17, -1, -1, 0),
@@ -150,7 +153,12 @@ end
 
 -- Quantity Choice
 local quantity = tonumber(API.ScriptAskBox("Quantity of Items:", false)[1])
+if quantity <= 0 then
+    print("Please enter a positive quantity!")
+    return
+end
 
+-- Returns the number of items to forge when accounting for pre-existing items in inventory
 local function getItemsToMake(level)
     local item = OPTIONS[BAR_SELECTION].items[ITEM_SELECTION]
     local itemsToMake = (quantity - API.InvItemcount_1(UNFINISHED_ITEM))
@@ -194,21 +202,20 @@ if STARTING_LEVEL then
 end
 
 local currentLevelIdx = STARTING_LEVEL_IDX
-local backlogCount = 0
 
-if quantity <= 0 then
-    print("Please enter a positive quantity!")
-    return
-end
+--[[ TODO: Remove this
+    * For non-stacking: (quantity - getItemsToMake(currentLevelIdx + 1)) = pre-made items in inventory
+    * First inventory items made = (pre-made items) + API.Invfreecount_()
+    * backlogCount = quantity - (first inventory items made)
+    * quantity = first inventory items made
+]]
 
-if getItemsToMake(currentLevelIdx + 1) > API.Invfreecount_() then
-    if OPTIONS[BAR_SELECTION].items[ITEM_SELECTION].stack then
-        backlogCount = quantity - API.Invfreecount_()
-        quantity = API.Invfreecount_()
-    else
-        -- TODO: Add support for banking to create more than one inventory of items per run
-        print(string.format("Please enter a positive quantity <= %d", API.Invfreecount_()))
-        return
+local function updateBacklog()
+    if getItemsToMake(currentLevelIdx + 1) > API.Invfreecount_() then
+        -- Backlog count excludes pre-made items in inventory and free inventory space
+        backlogCount = getItemsToMake(currentLevelIdx + 1) - API.Invfreecount_()
+        quantity = quantity - backlogCount
+        print(string.format("Backlog: %d, Current Quantity: %d", backlogCount, quantity))
     end
 end
 
@@ -218,9 +225,22 @@ local function makeUnfinishedItems()
     local unfinishedItemCount = API.InvItemcount_1(UNFINISHED_ITEM)
 
     if currentLevelIdx >= ITEM_LEVELS[GOAL_LEVEL][1] then        
-        if item.stack and backlogCount > 0 then
-            quantity = math.min(backlogCount, API.Invfreecount_())
-            backlogCount = backlogCount - quantity
+        if backlogCount > 0 then
+            if not item.stack then
+                print("Loading bank preset")
+
+                API.DoAction_Object1(0x33, API.OFF_ACT_GeneralObject_route3, { BANK }, 20)
+                API.RandomSleep2(1000, 500, 1000)
+                while (API.CheckAnim(50) or API.ReadPlayerMovin2()) and API.Read_LoopyLoop() do
+                    API.RandomSleep2()
+                end
+            end
+
+            quantity = backlogCount
+            updateBacklog()
+
+            -- TODO: Could we get rid of the starting level idx argument altogether since we skip levels that have 0 items to make now?
+            -- TODO: i.e. always start at level 1 and allow it to skip to the proper level
             currentLevelIdx = STARTING_LEVEL_IDX
         else
             API.Write_LoopyLoop(false)
@@ -331,6 +351,8 @@ local STATES = {
         callback = heatItem
     },
 }
+
+updateBacklog()
 
 print(string.format("%s %s (%d)", BAR_SELECTION, ITEM_SELECTION, quantity))
 if STARTING_LEVEL then print(string.format("Starting item level = %s", STARTING_LEVEL)) end
