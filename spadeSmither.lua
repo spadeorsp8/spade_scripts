@@ -4,7 +4,9 @@
 
 NOTE: Please make sure you have enough bars in storage to make the items you select. I do not check storage reserves yet.
 
-* Start script near Fort Forinthry workshop (with powerburst and perfect juju smithing potions in your inventory if you want).
+* Save and load bank preset with whatever items you want to have in your inventory each iteration (after banking smithed items).
+    * i.e. pre-existing lower-level items, powerburst or perfect juju smithing potions, etc.
+* Start script near Fort Forinthry workshop.
 * Select:
     * Bar type
     * Item
@@ -151,7 +153,7 @@ local function getItemsToMake(level)
 
     local finishedItemName = string.lower(ITEM_SELECTION)
     finishedItemName = string.gsub(finishedItemName, "_", " ")
-    if finishedItemName == "two handed sword" then finishedItemName = "2h sword" end
+    finishedItemName = string.gsub(finishedItemName, "two handed", "2h")
 
     -- Take any existing items from future levels into account
     for lvl = ITEM_LEVELS[GOAL_LEVEL][1], level, -1 do
@@ -189,25 +191,25 @@ local function makeUnfinishedItems()
     local unfinishedItemCount = API.InvItemcount_1(UNFINISHED_ITEM)
 
     if currentLevelIdx >= ITEM_LEVELS[GOAL_LEVEL][1] then        
-        if backlogCount > 0 then
-            if not item.stack then
-                print("Loading bank preset")
-
-                API.DoAction_Object1(0x33, API.OFF_ACT_GeneralObject_route3, { BANK }, 20)
-                API.RandomSleep2(1000, 500, 1000)
-                while (API.CheckAnim(50) or API.ReadPlayerMovin2()) and API.Read_LoopyLoop() do
-                    API.RandomSleep2()
-                end
-            end
-
-            quantity = backlogCount
-            backlogCount = 0
-            currentLevelIdx = 0
-            updateBacklog()
-        else
+        if backlogCount <= 0 then
             API.Write_LoopyLoop(false)
             return
         end
+
+        if not item.stack then
+            print("Loading bank preset")
+
+            API.DoAction_Object1(0x33, API.OFF_ACT_GeneralObject_route3, { BANK }, 20)
+            API.RandomSleep2(1000, 500, 1000)
+            while (API.CheckAnim(50) or API.ReadPlayerMovin2()) and API.Read_LoopyLoop() do
+                API.RandomSleep2(500, 250, 500)
+            end
+        end
+
+        quantity = backlogCount
+        backlogCount = 0
+        currentLevelIdx = 0
+        updateBacklog()
     end
     currentLevelIdx = currentLevelIdx + 1
 
@@ -243,7 +245,7 @@ local function makeUnfinishedItems()
     end
 
     -- Choose item
-    if API.VB_FindPSettinOrder(8336, -1).state ~= item.id then
+    if API.VB_FindPSettinOrder(8333, -1).state ~= item.id then
         API.DoAction_Interface(0xffffffff, item.id, 1, 37, item.ifidx[1], item.ifidx[2], API.OFF_ACT_GeneralInterface_route)
         API.RandomSleep2(1000, 250, 500)
     end
