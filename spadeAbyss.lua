@@ -30,6 +30,18 @@ local TRAINING_DATA = {
     },
 }
 
+local function chargePackCheck()
+    local chatTexts = API.GatherEvents_chat_check()
+    for _, v in ipairs(chatTexts) do
+        if (string.find(v.text, "Your charge pack has run out of power")) then
+            print("Charge pack is empty!")
+            API.DoAction_Ability("Retreat Teleport", 1, API.OFF_ACT_GeneralInterface_route)
+            API.Write_LoopyLoop(false)
+            return
+        end
+    end
+end
+
 local function maintainHealth()
     if API.GetHPrecent() > 50 then
         return
@@ -126,7 +138,6 @@ while API.Read_LoopyLoop() do
         break
     end
 
-    maintainHealth()
     if LOOT then loot(TDATA) end
     if not API.LocalPlayer_IsInCombat_() then
         print("Running to reset spot.")
@@ -137,5 +148,7 @@ while API.Read_LoopyLoop() do
         moveToTrainingSpot(TDATA.trainingSpots)
     end
 
+    maintainHealth()
+    chargePackCheck()
     API.RandomSleep2(1000, 250, 500)
 end
