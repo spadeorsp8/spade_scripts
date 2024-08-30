@@ -20,11 +20,11 @@ local NPCS = { 2265, 2264, 2263 }
 local STARTING_SPOT = FFPOINT.new(3040 + math.random(-5, 5), 4809 + math.random(-5, 5), 0)
 local SAFE_SPOT = FFPOINT.new(3048, 4805, 0)
 local TRAINING_DATA = {
-    SW = {
+    {
         trainingSpots = { FFPOINT.new(3030, 4807, 0), FFPOINT.new(3029, 4807, 0) },
         resetSpot = {3019, 4844},
     },
-    SE = {
+    {
         trainingSpots = { FFPOINT.new(3059, 4812, 0), FFPOINT.new(3059,4814,0) },
         resetSpot = {3058, 4844},
     },
@@ -102,9 +102,8 @@ local function playerNearTile(targetTile, dist)
 end
 
 local function chooseTrainingData()
-    for k, v in pairs(TRAINING_DATA) do
+    for _, v in ipairs(TRAINING_DATA) do
         if not playerNearTile(v.trainingSpots[1], 15) then
-            print(string.format("Choosing %s training spot.", k))
             return v
         end
     end
