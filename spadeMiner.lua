@@ -97,6 +97,17 @@ local function getShinyRock(rocks, maxDistance)
     return shinyRock
 end
 
+local function getProgress(samples)
+    local samples = samples or 1
+    local max = 0
+    for i = 1, samples do
+        local progress = API.LocalPlayer_HoverProgress()
+        if progress > max then max = progress end
+        API.RandomSleep2(250, 0, 0)
+    end
+    return max
+end
+
 setupMenu()
 
 clickedRock = nil
@@ -122,8 +133,15 @@ while API.Read_LoopyLoop() do
                 clickedRock = shinyRock
             end
         else
+            -- Click rock again to refresh stamina
+            if clickedRock and getProgress(5) < math.random(145, 165) then
+                API.DoAction_Object_Direct(0x3a, API.OFF_ACT_GeneralObject_route0, clickedRock)
+            end
+
             if not API.CheckAnim(25) and #rocks > 0 then
-                API.DoAction_Object_Direct(0x3a, API.OFF_ACT_GeneralObject_route0, rocks[math.random(1, #rocks)])
+                local randomRock = rocks[math.random(1, #rocks)]
+                API.DoAction_Object_Direct(0x3a, API.OFF_ACT_GeneralObject_route0, randomRock)
+                clickedRock = randomRock
             end
         end
     end
