@@ -17,6 +17,7 @@ local MYSTERY_REMAINS = 131355
 local ARCH_FOCUS = 7307
 local EEP = 31287
 local BANK_CHEST = 131378
+local COMPLETE_TOME = 49976
 
 API.SetDrawTrackedSkills(true)
 API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
@@ -88,6 +89,13 @@ local function excavate()
         -- Load preset from bank if inventory is still too full after turning in artifacts
         if API.Invfreecount_() <= 5 then
             print("Banking!")
+
+            if API.DoAction_Inventory1(COMPLETE_TOME, 0, 8, API.OFF_ACT_GeneralInterface_route2) then
+                API.RandomSleep2(2000, 500, 1000)
+                API.DoAction_Interface(0xffffffff, 0xffffffff, 0, 1183, 7, -1, API.OFF_ACT_GeneralInterface_Choose_option)
+                API.RandomSleep2(1000, 500, 1000)
+            end
+
             API.DoAction_Object1(0x33, API.OFF_ACT_GeneralObject_route3, { BANK_CHEST }, 50)
             waitForStillness()
         end
