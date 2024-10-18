@@ -124,7 +124,7 @@ local wispOptions = {
 }
 
 local MAX_IDLE_TIME_MINUTES = 5
-local EMPOWER_RIFT = true   -- If false, chronicle fragments will be offered from inv instead of used to empower rift
+local EMPOWER_RIFT = false   -- If false, chronicle fragments will be offered from inv instead of used to empower rift
 local FRAGMENT_IDS = {29293, 51489}
 local RIFT_IDS = { 93489, 87306 }
 
@@ -238,7 +238,7 @@ local function useEnergy()
     if getInvFragment() ~= 0 and EMPOWER_RIFT then
         API.DoAction_Object1(0x29, API.OFF_ACT_GeneralObject_route2, RIFT_IDS, 50)
 
-        while (API.CheckAnim(50) or API.ReadPlayerMovin2()) do
+        while (API.CheckAnim(75) or API.ReadPlayerMovin2()) do
             API.RandomSleep2(500, 250, 500)
         end
     end

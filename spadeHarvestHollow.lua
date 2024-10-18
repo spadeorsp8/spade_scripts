@@ -66,7 +66,7 @@ end
 
 local function summon()
     if not API.DoAction_Object1(0x41, API.OFF_ACT_GeneralObject_route0, CANDLES, 50) then
-        if not (API.CheckAnim(50) or API.ReadPlayerMovin2()) then
+        if not (API.CheckAnim(100) or API.ReadPlayerMovin2()) then
             API.DoAction_Object1(0x29, API.OFF_ACT_GeneralObject_route0, { SUMMONING_CIRCLE }, 50)
         end
     end
