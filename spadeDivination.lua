@@ -273,7 +273,7 @@ while API.Read_LoopyLoop() do
             API.RandomSleep2(1000, 500, 750)
         end
 
-        if API.InvFull_() then
+        if API.InvFull_() and not (API.CheckAnim(75) or API.ReadPlayerMovin2()) then
             useEnergy()
         else
             getEnergy()
