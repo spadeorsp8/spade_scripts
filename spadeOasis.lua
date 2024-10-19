@@ -1,6 +1,5 @@
 API = require('api')
 UTILS = require("utils")
-COLORS = require("colors")
 
 API.SetDrawTrackedSkills(true)
 
