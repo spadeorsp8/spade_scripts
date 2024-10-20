@@ -110,8 +110,9 @@ end
 
 setupMenu()
 
-clickedRock = nil
-selectedRock = nil
+local selectedRock = nil
+local clickedRockId = nil
+local clickedRockTile = nil
 while API.Read_LoopyLoop() do
     if API.GetGameState2() ~=3 or not API.PlayerLoggedIn() then
         print("Bad game state, exiting.")
@@ -132,21 +133,23 @@ while API.Read_LoopyLoop() do
         local rocks = API.GetAllObjArrayInteract_str({ selectedRock }, 50, { 0, 12 })
         local shinyRock = getShinyRock(rocks, 50)
         if shinyRock then
-            if not clickedRock or API.Math_DistanceF(clickedRock.Tile_XYZ, shinyRock.Tile_XYZ) ~= 0 then
+            if not clickedRockTile or API.Math_DistanceF(clickedRockTile, shinyRock.Tile_XYZ) ~= 0 then
                 API.RandomSleep2(500, 1000, 1500)
                 API.DoAction_Object_Direct(0x3a, API.OFF_ACT_GeneralObject_route0, shinyRock)
-                clickedRock = shinyRock
+                clickedRockId = shinyRock.Id
+                clickedRockTile = shinyRock.Tile_XYZ
             end
         else
             -- Click rock again to refresh stamina
-            if clickedRock and getProgress(5) < math.random(145, 165) then
-                API.DoAction_Object_Direct(0x3a, API.OFF_ACT_GeneralObject_route0, clickedRock)
+            if selectedRock ~= "Seren stone" and clickedRockTile and clickedRockId and getProgress(5) < math.random(145, 165) then
+                API.DoAction_Object2(0x3a, API.OFF_ACT_GeneralObject_route0, { clickedRockId }, 50, WPOINT.new(clickedRockTile.x, clickedRockTile.y, 0))
             end
 
             if not API.CheckAnim(25) and #rocks > 0 then
                 local randomRock = rocks[math.random(1, #rocks)]
                 API.DoAction_Object_Direct(0x3a, API.OFF_ACT_GeneralObject_route0, randomRock)
-                clickedRock = randomRock
+                clickedRockId = randomRock.Id
+                clickedRockTile = randomRock.Tile_XYZ
             end
         end
     end
