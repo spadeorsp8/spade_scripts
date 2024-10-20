@@ -1,5 +1,5 @@
 --[[
-@title Harvest Hallow Skiller
+@title Harvest Hollow Skiller
 @author Spade
 
 * Start near activity you'd like to do
@@ -18,6 +18,16 @@ local ARCH_FOCUS = 7307
 local EEP = 31287
 local BANK_CHEST = 131378
 local COMPLETE_TOME = 49976
+
+local ENTRANCE_XRANGE = {698, 703}
+local MAZE_PORTAL = 131372
+local BONE_CLUB = 57608
+local ZOMBIE_IMPLING = 31307
+local ZOMBIE = 31305
+local SKELETON = 31306
+local GATE = 131376
+local FENCE = 131377
+local PHOSPHOSSEOUS = 31302
 
 API.SetDrawTrackedSkills(true)
 API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
@@ -48,28 +58,32 @@ end
 
 local function waitForStillness()
     API.RandomSleep2(1000, 500, 1000)
-    while (API.CheckAnim(50) or API.ReadPlayerMovin2()) and API.Read_LoopyLoop() do
-        API.RandomSleep2(1000, 500, 1000)
+    while (API.ReadPlayerMovin2() or API.CheckAnim(50)) and API.Read_LoopyLoop() do
+        API.RandomSleep2(500, 250, 500)
     end
 end
 
 local function smashPumpkin()
-    API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { SMASHING_PUMPKIN }, 50)
+    return API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { SMASHING_PUMPKIN }, 50)
 end
 
 local function robGraves()
     if not (API.CheckAnim(50) or API.ReadPlayerMovin2()) then
         API.RandomSleep2(500, 2000, 3000)
-        API.DoAction_Object1(0x29, API.OFF_ACT_GeneralObject_route0, LOOT_LOCATIONS, 50)
+        return API.DoAction_Object1(0x29, API.OFF_ACT_GeneralObject_route0, LOOT_LOCATIONS, 50)
     end
+
+    return true
 end
 
 local function summon()
     if not API.DoAction_Object1(0x41, API.OFF_ACT_GeneralObject_route0, CANDLES, 50) then
         if not (API.CheckAnim(100) or API.ReadPlayerMovin2()) then
-            API.DoAction_Object1(0x29, API.OFF_ACT_GeneralObject_route0, { SUMMONING_CIRCLE }, 50)
+            return API.DoAction_Object1(0x29, API.OFF_ACT_GeneralObject_route0, { SUMMONING_CIRCLE }, 50)
         end
     end
+
+    return true
 end
 
 local function excavate()
@@ -126,9 +140,144 @@ local function excavate()
             clickedRemainsTile = targetRemainsTile
         end
     end
+
+    return true
 end
 
-local ACTIVITY = API.ScriptDialogWindow2("Activity", {"Smash Pumpkin", "Train Thieving", "Train Summoning", "Train Arch"}, "Start", "Close").Name
+local function completeMaze()
+    if #API.GetAllObjArrayInteract({ MAZE_PORTAL }, 50, { 12 }) > 0 then
+        print("Entering the maze")
+        API.DoAction_Object1(0x39, API.OFF_ACT_GeneralObject_route0, { MAZE_PORTAL }, 50)
+        waitForStillness()
+        API.RandomSleep2(4000, 1000, 2000)
+    end
+
+    -- Press 'b' to open inventory interface
+    if not API.InventoryInterfaceCheckvarbit() then
+        API.KeyboardPress32(0x42, 0)
+        API.RandomSleep2(250, 500, 750)
+    end
+
+    print("Waiting for first 3 zombie implings! Standing still is normal.")
+    while API.InvItemcount_1(BONE_CLUB) < 3 and API.Read_LoopyLoop() do
+        if API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { ZOMBIE_IMPLING }, 1) then
+            waitForStillness()
+        end
+
+        API.RandomSleep2(1000, 250, 500)
+    end
+
+    if not API.Read_LoopyLoop() then return false end
+
+    local lookForGate = false
+    local xRange = ENTRANCE_XRANGE
+    local yRange = {1726, 1727}
+    if API.Dist_FLP(FFPOINT.new(720, 1726, 0)) < API.Dist_FLP(FFPOINT.new(698, 1727, 0)) then
+        xRange = {717, 720}
+        lookForGate = true
+    end
+
+    local selectedTile = FFPOINT.new(math.random(xRange[1], xRange[2]), math.random(yRange[1], yRange[2]), 0)
+    while API.Dist_FLP(selectedTile) > 1 and API.Read_LoopyLoop() do
+        if not (API.ReadPlayerMovin2() or API.CheckAnim(50)) then
+            if API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { ZOMBIE, SKELETON }, 2) then
+                print("Spooking enemy!")
+                waitForStillness()
+            end
+
+            if API.Dist_FLP(selectedTile) < 1 then break end
+            selectedTile = FFPOINT.new(math.random(xRange[1], xRange[2]), math.random(yRange[1], yRange[2]), 0)
+            API.DoAction_TileF(selectedTile)
+            API.RandomSleep2(1000, 250, 500)
+            print("Navigating to ", selectedTile.x, selectedTile.y)
+        end
+
+        if API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { ZOMBIE_IMPLING }, 1) then
+            print("Catching zombie impling!")
+            API.RandomSleep2(500, 250, 500)
+        end
+
+        API.RandomSleep2(250, 500, 500)
+    end
+
+    if not API.Read_LoopyLoop() then return false end
+
+    if lookForGate then
+        if API.DoAction_Object2(0xb5, API.OFF_ACT_GeneralObject_route0, { GATE }, 50, WPOINT.new(713, 1726, 0)) then
+            print("Jumping main gate!")
+            waitForStillness()
+        else
+            xRange = ENTRANCE_XRANGE
+            selectedTile = FFPOINT.new(math.random(xRange[1], xRange[2]), math.random(yRange[1], yRange[2]), 0)
+            while API.Dist_FLP(selectedTile) > 1 and API.Read_LoopyLoop() do
+                if not (API.ReadPlayerMovin2() or API.CheckAnim(50)) then
+                    if API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { ZOMBIE, SKELETON }, 2) then
+                        print("Spooking enemy!")
+                        API.RandomSleep2(2000, 500, 1500)
+                    end
+
+                    if API.Dist_FLP(selectedTile) < 1 then break end
+                    selectedTile = FFPOINT.new(math.random(xRange[1], xRange[2]), math.random(yRange[1], yRange[2]), 0)
+                    API.DoAction_TileF(selectedTile)
+                    print("Navigating to ", selectedTile.x, selectedTile.y)
+                end
+
+                if API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { ZOMBIE_IMPLING }, 1) then
+                    print("Catching zombie impling!")
+                    API.RandomSleep2(500, 500, 500)
+                end
+
+                if API.DoAction_Object1(0xb5,API.OFF_ACT_GeneralObject_route0,{ GATE }, 2) then
+                    print("Jumping gate!")
+                    waitForStillness()
+                    break
+                end
+
+                API.RandomSleep2(250, 500, 500)
+            end
+
+            if not API.Read_LoopyLoop() then return false end
+        end
+
+        API.RandomSleep2(1000, 500, 1000)
+    end
+
+    print("Arrived in boss area!")
+    if API.InvItemcount_1(BONE_CLUB) < 10 then
+        print("Going to catch remaining implings!")
+        API.DoAction_TileF(FFPOINT.new(math.random(700, 707), math.random(1726, 1727), 0))
+        waitForStillness()
+
+        while API.InvItemcount_1(BONE_CLUB) < 10 and API.Read_LoopyLoop() do
+            if API.DoAction_NPC_In_Area(0x29, API.OFF_ACT_InteractNPC_route, { ZOMBIE_IMPLING }, 5, WPOINT.new(700, 1726, 0), WPOINT.new(707, 1727, 0), true, 0) then
+                waitForStillness()
+            end
+    
+            API.RandomSleep2(250, 500, 500)
+        end
+
+        if not API.Read_LoopyLoop() then return false end
+    end
+
+    print("Ready to fight the boss!")
+    API.DoAction_Object1(0xb5, API.OFF_ACT_GeneralObject_route0, { FENCE }, 50)
+    waitForStillness()
+
+    local targetBoneCount = API.InvItemcount_1(BONE_CLUB) - 10
+    while API.InvItemcount_1(BONE_CLUB) > targetBoneCount and API.Read_LoopyLoop() do
+        API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { PHOSPHOSSEOUS }, 50)
+        API.RandomSleep2(500, 500, 500)
+    end
+
+    if not API.Read_LoopyLoop() then return false end
+
+    print("The boss is dead!")
+    API.RandomSleep2(10000, 1000, 2000)
+
+    return true
+end
+
+local ACTIVITY = API.ScriptDialogWindow2("Activity", {"Smash Pumpkin", "Train Thieving", "Train Summoning", "Train Arch", "Maize Maze"}, "Start", "Close").Name
 if ACTIVITY == "Smash Pumpkin" then
     ACTIVITY = smashPumpkin
 elseif ACTIVITY == "Train Thieving" then
@@ -137,6 +286,8 @@ elseif ACTIVITY == "Train Summoning" then
     ACTIVITY = summon
 elseif ACTIVITY == "Train Arch" then
     ACTIVITY = excavate
+elseif ACTIVITY == "Maize Maze" then
+    ACTIVITY = completeMaze
 else
     API.Write_LoopyLoop(false)
 end
@@ -148,6 +299,8 @@ while API.Read_LoopyLoop() do
     end
 
     API.DoRandomEvents()
-    ACTIVITY()
+    if not ACTIVITY() then
+        break
+    end
     API.RandomSleep2(2000, 500, 1000)
 end
