@@ -22,7 +22,7 @@ local COMPLETE_TOME = 49976
 API.SetDrawTrackedSkills(true)
 API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
 
-local clickedRemains = nil
+local clickedRemainsTile = nil
 local artifactFoundInterface = {
     InterfaceComp5.new(1189, 2, -1, -1, 0),
 }
@@ -100,30 +100,30 @@ local function excavate()
             waitForStillness()
         end
 
-        clickedRemains = nil
+        clickedRemainsTile = nil
     end
 
     if artifactFoundInterfacePresent() then
-        clickedRemains = nil
+        clickedRemainsTile = nil
     end
 
     local remains = API.GetAllObjArrayInteract({ MYSTERY_REMAINS }, 50, { 12 })
     local focusRemains = getFocusRemains(remains, 50)
     if focusRemains then
-        if not clickedRemains or API.Math_DistanceF(clickedRemains.Tile_XYZ, focusRemains.Tile_XYZ) ~= 0 then
+        if not clickedRemainsTile or API.Math_DistanceF(clickedRemainsTile, focusRemains.Tile_XYZ) ~= 0 then
             API.RandomSleep2(500, 1000, 1500)
             API.DoAction_Object_Direct(0x2, API.OFF_ACT_GeneralObject_route0, focusRemains)
-            clickedRemains = focusRemains
+            clickedRemainsTile = focusRemains.Tile_XYZ
         end
     else
         if not (API.CheckAnim(50) or API.ReadPlayerMovin2()) and #remains > 0 then
-            local targetRemains = clickedRemains
-            if not targetRemains then
-                targetRemains = remains[math.random(1, #remains)]
+            local targetRemainsTile = clickedRemainsTile
+            if not targetRemainsTile then
+                targetRemainsTile = remains[math.random(1, #remains)].Tile_XYZ
             end
 
-            API.DoAction_Object_Direct(0x2, API.OFF_ACT_GeneralObject_route0, targetRemains)
-            clickedRemains = targetRemains
+            API.DoAction_Object2(0x2, API.OFF_ACT_GeneralObject_route0, { MYSTERY_REMAINS }, 50, WPOINT.new(targetRemainsTile.x, targetRemainsTile.y, 0))
+            clickedRemainsTile = targetRemainsTile
         end
     end
 end
