@@ -49,10 +49,7 @@ local function setupMenu()
     API.DrawComboBox(menu, false)
 end
 
-local function chargeGOTE()
-    local buffStatus = API.Buffbar_GetIDstatus(51490, false)
-    local stacks = tonumber(buffStatus.text)
-
+local function getPorter()
     local porterId = nil
     for _, id in ipairs(PORTERS) do
         if API.InvItemcount_1(id) > 0 then
@@ -61,6 +58,14 @@ local function chargeGOTE()
         end
     end
 
+    return porterId
+end
+
+local function chargeGOTE()
+    local buffStatus = API.Buffbar_GetIDstatus(51490, false)
+    local stacks = tonumber(buffStatus.text)
+
+    local porterId = getPorter()
     if porterId and stacks and stacks <= 50 then
         print ("Recharging GOTE")
         API.DoAction_Ability("Grace of the elves", 5, API.OFF_ACT_GeneralInterface_route)
@@ -122,6 +127,11 @@ while API.Read_LoopyLoop() do
     API.DoRandomEvents()
     takeMiningPot()
     chargeGOTE()
+
+    if API.InvFull_() and not getPorter() then
+        print("Out of porters!")
+        break
+    end
 
     if (menu.return_click) then
         menu.return_click = false
