@@ -28,6 +28,7 @@ local SKELETON = 31306
 local GATE = 131376
 local FENCE = 131377
 local PHOSPHOSSEOUS = 31302
+local SKARAXXI = 31304
 
 API.SetDrawTrackedSkills(true)
 API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
@@ -265,7 +266,7 @@ local function completeMaze()
 
     local targetBoneCount = API.InvItemcount_1(BONE_CLUB) - 10
     while API.InvItemcount_1(BONE_CLUB) > targetBoneCount and API.Read_LoopyLoop() do
-        API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { PHOSPHOSSEOUS }, 50)
+        API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { SKARAXXI }, 50)
         API.RandomSleep2(500, 500, 500)
     end
 
