@@ -60,6 +60,7 @@ end
 local function waitForStillness()
     API.RandomSleep2(1000, 500, 1000)
     while (API.ReadPlayerMovin2() or API.CheckAnim(50)) and API.Read_LoopyLoop() do
+        API.DoRandomEvents()
         API.RandomSleep2(500, 250, 500)
     end
 end
@@ -145,6 +146,10 @@ local function excavate()
     return true
 end
 
+local function getBossHealth()
+    return API.VB_FindPSettinOrder(10937, 0).state
+end
+
 local function completeMaze()
     if #API.GetAllObjArrayInteract({ MAZE_PORTAL }, 50, { 12 }) > 0 then
         print("Entering the maze")
@@ -161,7 +166,7 @@ local function completeMaze()
 
     print("Waiting for first 3 zombie implings! Standing still is normal.")
     while API.InvItemcount_1(BONE_CLUB) < 3 and API.Read_LoopyLoop() do
-        if API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { ZOMBIE_IMPLING }, 1) then
+        if API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { ZOMBIE_IMPLING }, 2) then
             waitForStillness()
         end
 
@@ -211,7 +216,7 @@ local function completeMaze()
             xRange = ENTRANCE_XRANGE
             selectedTile = FFPOINT.new(math.random(xRange[1], xRange[2]), math.random(yRange[1], yRange[2]), 0)
             while API.Dist_FLP(selectedTile) > 1 and API.Read_LoopyLoop() do
-                if not (API.ReadPlayerMovin2() or API.CheckAnim(50)) then
+                if not (API.ReadPlayerMovin2() or API.CheckAnim(30)) then
                     if API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { ZOMBIE, SKELETON }, 2) then
                         print("Spooking enemy!")
                         API.RandomSleep2(2000, 500, 1500)
@@ -244,12 +249,15 @@ local function completeMaze()
     end
 
     print("Arrived in boss area!")
-    if API.InvItemcount_1(BONE_CLUB) < 10 then
+
+    ::collectImplings::
+    local bonesToKill = (getBossHealth() / 10)
+    if API.InvItemcount_1(BONE_CLUB) < bonesToKill then
         print("Going to catch remaining implings!")
         API.DoAction_TileF(FFPOINT.new(math.random(700, 707), math.random(1726, 1727), 0))
         waitForStillness()
 
-        while API.InvItemcount_1(BONE_CLUB) < 10 and API.Read_LoopyLoop() do
+        while API.InvItemcount_1(BONE_CLUB) < bonesToKill and API.Read_LoopyLoop() do
             if API.DoAction_NPC_In_Area(0x29, API.OFF_ACT_InteractNPC_route, { ZOMBIE_IMPLING }, 5, WPOINT.new(700, 1726, 0), WPOINT.new(707, 1727, 0), true, 0) then
                 waitForStillness()
             end
@@ -264,13 +272,22 @@ local function completeMaze()
     API.DoAction_Object1(0xb5, API.OFF_ACT_GeneralObject_route0, { FENCE }, 50)
     waitForStillness()
 
-    local targetBoneCount = API.InvItemcount_1(BONE_CLUB) - 10
+    local targetBoneCount = API.InvItemcount_1(BONE_CLUB) - bonesToKill
     while API.InvItemcount_1(BONE_CLUB) > targetBoneCount and API.Read_LoopyLoop() do
         API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { SKARAXXI }, 50)
         API.RandomSleep2(500, 500, 500)
     end
 
     if not API.Read_LoopyLoop() then return false end
+
+    if getBossHealth() > 0 then
+        print("Boss isn't dead yet, we got spooked!")
+        API.DoAction_Object1(0xb5, API.OFF_ACT_GeneralObject_route0, { FENCE }, 50)
+        waitForStillness()
+        if not API.Read_LoopyLoop() then return false end
+
+        goto collectImplings
+    end
 
     print("The boss is dead!")
     API.RandomSleep2(10000, 1000, 2000)
