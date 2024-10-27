@@ -169,7 +169,7 @@ local function doRandomEvents(ignoreChance, ignoreTimeout)
 end
 
 local fullInvInterface = {
-    InterfaceComp5.new(1186, 2, -1, -1, 0),
+    InterfaceComp5.new(1186, 2, -1, 0),
 }
 
 local function fullInvInterfacePresent()

@@ -37,8 +37,8 @@ local backlogCount = 0
 local currentLevelIdx = 0
 
 local SMITHING_IFACE = {
-    InterfaceComp5.new(37, 17, -1, -1, 0),
-    InterfaceComp5.new(37, 18, -1, 17, 0)
+    InterfaceComp5.new(37, 17, -1, 0),
+    InterfaceComp5.new(37, 18, -1, 0)
 }
 
 local function smithingInterfacePresent()

@@ -35,7 +35,7 @@ API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
 
 local clickedRemainsTile = nil
 local artifactFoundInterface = {
-    InterfaceComp5.new(1189, 2, -1, -1, 0),
+    InterfaceComp5.new(1189, 2, -1, 0),
 }
 
 local function artifactFoundInterfacePresent()

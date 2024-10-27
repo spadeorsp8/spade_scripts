@@ -15,7 +15,7 @@ state = 1
 local MAX_IDLE_TIME_MINUTES = 5
 local BANK_CHEST = 92692
 local OBELISK = 94230
-local obeliskInterface = { InterfaceComp5.new(1371, 7, -1, -1, 0) }
+local obeliskInterface = { InterfaceComp5.new(1371, 7, -1, 0) }
 
 local STATES = {
     {
