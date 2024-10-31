@@ -32,6 +32,7 @@ local BOSS = 31303
 API.SetDrawTrackedSkills(true)
 API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
 
+local followSprite = true
 local clickedRemainsTile = nil
 local artifactFoundInterface = {
     InterfaceComp5.new(1189, 2, -1, 0),
@@ -118,12 +119,17 @@ local function excavate()
         clickedRemainsTile = nil
     end
 
-    if artifactFoundInterfacePresent() then
+    if artifactFoundInterfacePresent() and followSprite then
         clickedRemainsTile = nil
     end
 
     local remains = API.GetAllObjArrayInteract({ MYSTERY_REMAINS }, 50, { 12 })
-    local focusRemains = getFocusRemains(remains, 50)
+
+    local focusRemains = nil
+    if followSprite then
+        focusRemains = getFocusRemains(remains, 50)
+    end
+
     if focusRemains then
         if not clickedRemainsTile or API.Math_DistanceF(clickedRemainsTile, focusRemains.Tile_XYZ) ~= 0 then
             API.RandomSleep2(500, 1000, 1500)
@@ -302,6 +308,7 @@ elseif ACTIVITY == "Train Thieving" then
 elseif ACTIVITY == "Train Summoning" then
     ACTIVITY = summon
 elseif ACTIVITY == "Train Arch" then
+    followSprite = (API.ScriptDialogWindow2("Follow Sprite?", {"Yes", "No"}, "Start", "Close").Name == "Yes")
     ACTIVITY = excavate
 elseif ACTIVITY == "Maize Maze" then
     ACTIVITY = completeMaze
