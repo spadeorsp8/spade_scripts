@@ -143,6 +143,8 @@ if quantity <= 0 then
     return
 end
 
+local masterwork = (BAR_SELECTION == "MASTERWORK" or ITEM_SELECTION == "MASTERWORK_RIVETS")
+
 -- Returns the number of items to forge when accounting for pre-existing items in inventory
 local function getItemsToMake(level)
     local item = OPTIONS[BAR_SELECTION].items[ITEM_SELECTION]
@@ -167,27 +169,57 @@ local function getItemsToMake(level)
         end
 
         for _, v in ipairs(API.ReadInvArrays33()) do
-            if BAR_SELECTION ~= "MASTERWORK" then
+            if not masterwork then
                 if string.find(v.textitem, tempItemName .. "$") then
                     itemsToMake = itemsToMake - 1
                 end
             else
-                if string.lower(v.textitem) == finishedItemName then
+                local itemName = v.textitem:match(">(.*)")
+                if itemName then
+                    itemName = string.lower(itemName)
+                end
+
+                if itemName == finishedItemName then
                     itemsToMake = itemsToMake - 1
                 end
             end
         end
     end
 
+    print("Items to make: ", itemsToMake)
     return itemsToMake
 end
 
 local function updateBacklog()
-    if getItemsToMake(currentLevelIdx + 1) > API.Invfreecount_() then
+    local itemsToMake = getItemsToMake(currentLevelIdx + 1)
+
+    if masterwork then
+        -- We can only make 1 masterwork item at a time
+        local finishedItems = quantity - itemsToMake
+
+        if backlogCount > 0 then
+            backlogCount = backlogCount - 1
+        else
+            backlogCount = itemsToMake - 1
+        end
+
+        quantity = 1 + finishedItems
+    elseif itemsToMake > API.Invfreecount_() then
         -- Backlog count excludes pre-made items in inventory and free inventory space
-        backlogCount = getItemsToMake(currentLevelIdx + 1) - API.Invfreecount_()
+        backlogCount = itemsToMake - API.Invfreecount_()
         quantity = quantity - backlogCount
-        print(string.format("Backlog: %d, Current Quantity: %d", backlogCount, quantity))
+    end
+
+    print(string.format("Backlog: %d, Current Quantity: %d", backlogCount, quantity))
+end
+
+local function bank()
+    print("Loading bank preset")
+
+    API.DoAction_Object1(0x33, API.OFF_ACT_GeneralObject_route3, { BANK }, 20)
+    API.RandomSleep2(1000, 500, 1000)
+    while (API.CheckAnim(50) or API.ReadPlayerMovin2()) and API.Read_LoopyLoop() do
+        API.RandomSleep2(500, 250, 500)
     end
 end
 
@@ -196,25 +228,24 @@ local function makeUnfinishedItems()
     local item = OPTIONS[BAR_SELECTION].items[ITEM_SELECTION]
     local unfinishedItemCount = API.InvItemcount_1(UNFINISHED_ITEM)
 
-    if currentLevelIdx >= ITEM_LEVELS[GOAL_LEVEL][1] then        
+    if currentLevelIdx >= ITEM_LEVELS[GOAL_LEVEL][1] then
         if backlogCount <= 0 then
+            print("Completed backlog. Exiting!")
             API.Write_LoopyLoop(false)
             return
         end
 
-        if not item.stack then
-            print("Loading bank preset")
-
-            API.DoAction_Object1(0x33, API.OFF_ACT_GeneralObject_route3, { BANK }, 20)
-            API.RandomSleep2(1000, 500, 1000)
-            while (API.CheckAnim(50) or API.ReadPlayerMovin2()) and API.Read_LoopyLoop() do
-                API.RandomSleep2(500, 250, 500)
-            end
+        if not masterwork and not item.stack then
+            bank()
         end
 
         quantity = backlogCount
-        backlogCount = 0
         currentLevelIdx = 0
+
+        if masterwork then
+            -- TODO: Check if there are enough pre-requisites in inventory; bank if not
+        end
+
         updateBacklog()
     end
     currentLevelIdx = currentLevelIdx + 1
@@ -243,6 +274,7 @@ local function makeUnfinishedItems()
     while not smithingInterfacePresent() and API.Read_LoopyLoop() do
         API.RandomSleep2(500, 250, 500)
     end
+    API.RandomSleep2(1000, 250, 500)
 
     -- Choose bar
     if API.VB_FindPSettinOrder(8332, -1).state ~= bar[4] then
@@ -279,7 +311,7 @@ local function makeUnfinishedItems()
     end
 
     -- Choose quantity
-    if BAR_SELECTION ~= "MASTERWORK" and ITEM_SELECTION ~= "MASTERWORK_RIVETS" then
+    if not masterwork then
         local currentQuantity = API.VB_FindPSettinOrder(8336, -1).state
         local quantityDelta = itemsToMake - currentQuantity
         for i = 1, math.abs(quantityDelta) do
@@ -294,9 +326,11 @@ local function makeUnfinishedItems()
     end
 
     -- Press space to confirm
-    API.RandomSleep2(500, 250, 500)
-    API.KeyboardPress32(0x20, 0)
     API.RandomSleep2(1000, 250, 500)
+    while smithingInterfacePresent() and API.Read_LoopyLoop() do
+        API.KeyboardPress32(0x20, 0)
+        API.RandomSleep2(1000, 250, 500)
+    end
 end
 
 local function smithItem()
