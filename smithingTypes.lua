@@ -1733,8 +1733,33 @@ TYPES.options = {
                 ifidx = {125, 5},
                 stack = 1000
             }
-        }
+        },
     },
+    MASTERWORK = {
+        bar = {45991, 62, 7, 1500},
+        items = {
+            MASTERWORK_PLATE = {
+                id = 45993,
+                levels = {"BASE"},
+                ifidx = {103, 7}
+            },
+            CURVED_MASTERWORK_PLATE = {
+                id = 45995,
+                levels = {"BASE"},
+                ifidx = {103, 9}
+            },
+            UNTEMPERED_MASTERWORK_ARMOUR_PIECE = {
+                id = 45997,
+                levels = {"BASE"},
+                ifidx = {103, 11}
+            },
+            MASTERWORK_ARMOUR_PIECE = {
+                id = 45999,
+                levels = {"BASE"},
+                ifidx = {103, 13}
+            },
+        }
+    }
 }
 
 return TYPES

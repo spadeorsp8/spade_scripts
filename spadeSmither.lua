@@ -167,8 +167,14 @@ local function getItemsToMake(level)
         end
 
         for _, v in ipairs(API.ReadInvArrays33()) do
-            if string.find(v.textitem, tempItemName .. "$") then
-                itemsToMake = itemsToMake - 1
+            if BAR_SELECTION ~= "MASTERWORK" then
+                if string.find(v.textitem, tempItemName .. "$") then
+                    itemsToMake = itemsToMake - 1
+                end
+            else
+                if string.lower(v.textitem) == finishedItemName then
+                    itemsToMake = itemsToMake - 1
+                end
             end
         end
     end
@@ -273,16 +279,18 @@ local function makeUnfinishedItems()
     end
 
     -- Choose quantity
-    local currentQuantity = API.VB_FindPSettinOrder(8336, -1).state
-    local quantityDelta = itemsToMake - currentQuantity
-    for i = 1, math.abs(quantityDelta) do
-        if quantityDelta > 0 then
-            API.DoAction_Interface(0xffffffff, 0xffffffff, 1, 37, 34, 7, API.OFF_ACT_GeneralInterface_route)
-        else
-            API.DoAction_Interface(0xffffffff, 0xffffffff, 1, 37, 34, 0, API.OFF_ACT_GeneralInterface_route)
+    if BAR_SELECTION ~= "MASTERWORK" and ITEM_SELECTION ~= "MASTERWORK_RIVETS" then
+        local currentQuantity = API.VB_FindPSettinOrder(8336, -1).state
+        local quantityDelta = itemsToMake - currentQuantity
+        for i = 1, math.abs(quantityDelta) do
+            if quantityDelta > 0 then
+                API.DoAction_Interface(0xffffffff, 0xffffffff, 1, 37, 34, 7, API.OFF_ACT_GeneralInterface_route)
+            else
+                API.DoAction_Interface(0xffffffff, 0xffffffff, 1, 37, 34, 0, API.OFF_ACT_GeneralInterface_route)
+            end
+            
+            API.RandomSleep2(250, 250, 500)
         end
-        
-        API.RandomSleep2(250, 250, 500)
     end
 
     -- Press space to confirm
@@ -311,7 +319,7 @@ local STATES = {
     },
     {
         desc = "Heating item",
-        pre = function() return API.InvItemcount_1(UNFINISHED_ITEM) > 0 and getProgress(5) < 150 and API.CheckAnim(50) end,
+        pre = function() return API.InvItemcount_1(UNFINISHED_ITEM) > 0 and getProgress(5) < math.random(165, 175) and API.CheckAnim(50) end,
         callback = heatItem
     },
 }
