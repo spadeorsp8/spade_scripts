@@ -1,5 +1,14 @@
+--[[
+@title Spade Divination
+@author Spade
+
+* If using divine-o-matic, equip the vacuum and add it anywhere in your action bar. Keep empty charges in inventory.
+* Start script near wisps you'd like to harvest.
+
+Note: Set IGNORE_FRAGMENTS if you want to ignore fragments, and set EMPOWER_RIFT based on how you'd like to use fragments.
+--]]
+
 local API = require("api")
-local UTILS = require("utils")
 
 API.SetDrawTrackedSkills(true)
 
@@ -124,13 +133,13 @@ local wispOptions = {
 }
 
 local MAX_IDLE_TIME_MINUTES = 5
-local EMPOWER_RIFT = false   -- If false, chronicle fragments will be offered from inv instead of used to empower rift
+local IGNORE_FRAGMENTS = true
+local EMPOWER_RIFT = true   -- If false, chronicle fragments will be offered from inv instead of used to empower rift
 local FRAGMENT_IDS = {29293, 51489}
 local RIFT_IDS = { 93489, 87306 }
 local EMPTY_CHARGE = 41073
 local VACUUM_ID = 41083
 
-local menu = API.CreateIG_answer()
 local selectedWisp = nil
 local selectedSpring = nil
 local enrichedWisp = nil
@@ -139,37 +148,22 @@ local harvestingEnriched = false
 
 API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
 
-eventIgnoreEndTime = os.time()
+local function doRandomEvents()
+    local eventIDs = { 19884, 26022, 27228, 27297, 28411, 30599, 15451 }
+    if not IGNORE_FRAGMENTS then
+        table.insert(eventIDs, 18204)
 
----@param ignoreChance (int): percentage chance events are ignored for the length of ignoreTimeout
----@param ignoreTimeout (int): number of seconds that events will be ignored 
----@return boolean
-local function doRandomEvents(ignoreChance, ignoreTimeout)
-    local ignoreChance = ignoreChance or 0
-    local ignoreTimeout = ignoreTimeout or 0
-
-    -- Add 18205 if you want to gather chronicle fragments from others
-    local eventIDs = { 19884, 26022, 27228, 27297, 28411, 30599, 15451, 18204 }
-    local eventObjs = API.GetAllObjArrayInteract(eventIDs, 30, {0, 1, 12})
-
-    if #eventObjs <= 0 or os.time() < eventIgnoreEndTime then
-        return false
+        -- Add 18205 if you want to gather chronicle fragments from others
+        -- table.insert(eventIDs, 18205)
     end
 
-    if math.random(100) > (100 - ignoreChance) then
-        print(string.format("Ignoring events for the next %d seconds", ignoreTimeout))
-        eventIgnoreEndTime = os.time() + ignoreTimeout
-        return false
+    if #API.GetAllObjArrayInteract(eventIDs, 30, {0, 1, 12}) <= 0 then
+        return
     end
 
-    print("Clicking random event!")
-    UTILS.randomSleep(1000, 250, 500)
-    if API.DoAction_NPC__Direct(0x29, API.OFF_ACT_InteractNPC_route, eventObjs[1]) then
-        UTILS.randomSleep(500, 100, 250)
-        return true
-    end
-
-    return false
+    API.RandomSleep2(1000, 2000, 2000)
+    API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, eventIDs, 50)
+    API.RandomSleep2(500, 1000, 1000)
 end
 
 local fullInvInterface = {
@@ -178,20 +172,6 @@ local fullInvInterface = {
 
 local function fullInvInterfacePresent()
     return #API.ScanForInterfaceTest2Get(true, fullInvInterface) > 0
-end
-
-local function setupMenu()
-    menu.box_name = "Div Menu"
-    menu.box_start = FFPOINT.new(1, 60, 0)
-    menu.box_size = FFPOINT.new(440, 0, 0)
-    menu.stringsArr = {}
-
-    table.insert(menu.stringsArr, "Select an option")
-    for _, v in ipairs(wispOptions) do
-        table.insert(menu.stringsArr, v.label)
-    end
-
-    API.DrawComboBox(menu, false)
 end
 
 local function getInvFragment()
@@ -205,13 +185,13 @@ local function getInvFragment()
 end
 
 local function harvest(wispId, springId)
-    if springId and #API.GetAllObjArray1({ springId }, 50, { 1 }) > 0 then
-        print("Harvesting spring " .. springId)
-        API.DoAction_NPC(0xc8, API.OFF_ACT_InteractNPC_route, { springId }, 50)
+    local wispObjs = API.GetAllObjArrayInteract({ wispId }, 50, {0, 1, 12})
+    local springObjs = API.GetAllObjArrayInteract({ springId }, 50, {0, 1, 12})
+    if #springObjs > 0 then
+        API.DoAction_NPC__Direct(0xc8, API.OFF_ACT_InteractNPC_route, springObjs[math.random(1, #springObjs)])
         return true
-    elseif wispId and #API.GetAllObjArray1({ wispId }, 50, { 1 }) > 0 then
-        print("Harvesting wisp " .. wispId)
-        API.DoAction_NPC(0xc8, API.OFF_ACT_InteractNPC_route, { wispId }, 50)
+    elseif #wispObjs > 0 then
+        API.DoAction_NPC__Direct(0xc8, API.OFF_ACT_InteractNPC_route, wispObjs[math.random(1, #wispObjs)])
         return true
     end
 
@@ -285,7 +265,6 @@ local function handleElidinisEvents()
     local found = false
     local eventObjs = API.GetAllObjArray1(eventIDs, 50, { 1 })
     if #eventObjs > 0 then
-        -- TODO: Remove this
         print("Elidinis soul detected!")
         found = true
     end
@@ -306,24 +285,32 @@ local function handleElidinisEvents()
     if found then API.DoAction_TileF(originTile) end
 end
 
-setupMenu()
+for _, v in ipairs(wispOptions) do
+    if #API.GetAllObjArray1({ v.ids.wisp, v.ids.spring }, 50, { 0, 1, 12 }) > 0 then
+        selectedWisp = v.ids.wisp
+        selectedSpring = v.ids.spring
+        enrichedWisp = v.ids.enriched_wisp
+        enrichedSpring = v.ids.enriched_spring
+
+        print("Harvesting " .. v.label)
+        break
+    end
+end
+
+if not selectedWisp then
+    print("Please start near wisps!")
+    API.Write_LoopyLoop(false)
+end
+
 while API.Read_LoopyLoop() do
+    if API.GetGameState2() ~= 3 or not API.PlayerLoggedIn() then
+        print("Bad game state, exiting.")
+        break
+    end
+
     doRandomEvents()
     handleElidinisEvents()
     rechargeVacuum()
-
-    if (menu.return_click) then
-        menu.return_click = false
-
-        for _, v in ipairs(wispOptions) do
-            if (menu.string_value == v.label) then
-                selectedWisp = v.ids.wisp
-                selectedSpring = v.ids.spring
-                enrichedWisp = v.ids.enriched_wisp
-                enrichedSpring = v.ids.enriched_spring
-            end
-        end
-    end
 
     if selectedWisp ~= nil then
         if fullInvInterfacePresent() then

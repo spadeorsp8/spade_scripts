@@ -40,7 +40,6 @@ local function handleElidinisEvents()
     local found = false
     local eventObjs = API.GetAllObjArray1(eventIDs, 50, { 1 })
     if #eventObjs > 0 then
-        -- TODO: Remove this
         print("Elidinis soul detected!")
         found = true
     end

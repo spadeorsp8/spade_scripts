@@ -119,7 +119,7 @@ local selectedRock = nil
 local clickedRockId = nil
 local clickedRockTile = nil
 while API.Read_LoopyLoop() do
-    if API.GetGameState2() ~=3 or not API.PlayerLoggedIn() then
+    if API.GetGameState2() ~= 3 or not API.PlayerLoggedIn() then
         print("Bad game state, exiting.")
         break
     end
