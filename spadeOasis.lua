@@ -314,6 +314,36 @@ if Cselect == "Catch Whirligigs" then
     end
 end
 
+local function handleElidinisEvents()
+    local lostSoul = 17720
+    local unstableSoul = 17739
+    local mimickingSoul = 18222
+    local eventIDs = { lostSoul, unstableSoul, mimickingSoul }
+
+    local found = false
+    local eventObjs = API.GetAllObjArray1(eventIDs, 50, { 1 })
+    if #eventObjs > 0 then
+        -- TODO: Remove this
+        print("Elidinis soul detected!")
+        found = true
+    end
+
+    local originTile = API.PlayerCoordfloat()
+    while #eventObjs > 0 and API.Read_LoopyLoop() do
+        if eventObjs[1].Id == mimickingSoul then
+            API.DoAction_TileF(eventObjs[1].Tile_XYZ)
+        elseif eventObjs[1].Id == unstableSoul or eventObjs[1].Id == lostSoul then
+            -- API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { eventObjs[1].Id }, 50)
+            API.DoAction_NPC__Direct(0x29, API.OFF_ACT_InteractNPC_route, eventObjs[1])
+        end
+
+        API.RandomSleep2(1000, 250, 500)
+        eventObjs = API.GetAllObjArray1(eventIDs, 50, { 1 })
+    end
+
+    if found then API.DoAction_TileF(originTile) end
+end
+
 if Cselect == "Cultivate Flowers" then
     local pickedFlower = API.ScriptDialogWindow2("Flower type", {"Roses", "Iris", "Hydrangea", "Hollyhocks"}, "Start", "Close").Name
     local useCompost = API.ScriptDialogWindow2("Use ultracompost?", {"Yes", "No"}, "Start", "Close").Name == "Yes"
@@ -331,7 +361,8 @@ if Cselect == "Cultivate Flowers" then
     end
 
     while API.Read_LoopyLoop() do
-        doRandomEvents(20, 45)
+        API.DoRandomEvents()
+        handleElidinisEvents()
         API.SetMaxIdleTime(MAX_IDLE_TIME_MINUTES)
         cultivateFlowers(useCompost)
     end
