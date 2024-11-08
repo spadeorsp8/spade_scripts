@@ -127,6 +127,8 @@ local MAX_IDLE_TIME_MINUTES = 5
 local EMPOWER_RIFT = false   -- If false, chronicle fragments will be offered from inv instead of used to empower rift
 local FRAGMENT_IDS = {29293, 51489}
 local RIFT_IDS = { 93489, 87306 }
+local EMPTY_CHARGE = 41073
+local VACUUM_ID = 41083
 
 local menu = API.CreateIG_answer()
 local selectedWisp = nil
@@ -145,7 +147,9 @@ eventIgnoreEndTime = os.time()
 local function doRandomEvents(ignoreChance, ignoreTimeout)
     local ignoreChance = ignoreChance or 0
     local ignoreTimeout = ignoreTimeout or 0
-    local eventIDs = { 19884, 26022, 27228, 27297, 28411, 30599, 15451, 18204, 18205 }
+
+    -- Add 18205 if you want to gather chronicle fragments from others
+    local eventIDs = { 19884, 26022, 27228, 27297, 28411, 30599, 15451, 18204 }
     local eventObjs = API.GetAllObjArrayInteract(eventIDs, 30, {0, 1, 12})
 
     if #eventObjs <= 0 or os.time() < eventIgnoreEndTime then
@@ -247,9 +251,66 @@ local function useEnergy()
     API.DoAction_Object1(0xc8, API.OFF_ACT_GeneralObject_route0, RIFT_IDS, 50)
 end
 
+local function rechargeVacuum()
+    if API.InvItemcount_1(EMPTY_CHARGE) <= 0 then
+        return
+    end
+
+    local vacuumContainer = API.Container_Get_all(94)[4]
+    if vacuumContainer.item_id ~= VACUUM_ID then
+        return
+    end
+
+    local vacuumCharge = vacuumContainer.Extra_ints[2] & 0x7F
+    if vacuumCharge <= math.random(1, 5) then
+        print("Recharging vacuum!")
+
+        -- Withdraw from vacuum
+        -- API.DoAction_Interface(0xffffffff,0xa07b,4,1430,90,-1,API.OFF_ACT_GeneralInterface_route)
+        API.DoAction_Ability("Divine-o-matic vacuum", 4, API.OFF_ACT_GeneralInterface_route)
+        API.RandomSleep2(500, 500, 500)
+
+        -- Add all empty charges to vacuum
+        API.DoAction_Inventory1(EMPTY_CHARGE, 0, 3, API.OFF_ACT_GeneralInterface_route)
+        API.RandomSleep2(500, 500, 500)
+    end
+end
+
+local function handleElidinisEvents()
+    local lostSoul = 17720
+    local unstableSoul = 17739
+    local mimickingSoul = 18222
+    local eventIDs = { lostSoul, unstableSoul, mimickingSoul }
+
+    local found = false
+    local eventObjs = API.GetAllObjArray1(eventIDs, 50, { 1 })
+    if #eventObjs > 0 then
+        -- TODO: Remove this
+        print("Elidinis soul detected!")
+        found = true
+    end
+
+    local originTile = API.PlayerCoordfloat()
+    while #eventObjs > 0 and API.Read_LoopyLoop() do
+        if eventObjs[1].Id == mimickingSoul then
+            API.DoAction_TileF(eventObjs[1].Tile_XYZ)
+        elseif eventObjs[1].Id == unstableSoul or eventObjs[1].Id == lostSoul then
+            -- API.DoAction_NPC(0x29, API.OFF_ACT_InteractNPC_route, { eventObjs[1].Id }, 50)
+            API.DoAction_NPC__Direct(0x29, API.OFF_ACT_InteractNPC_route, eventObjs[1])
+        end
+
+        API.RandomSleep2(1000, 250, 500)
+        eventObjs = API.GetAllObjArray1(eventIDs, 50, { 1 })
+    end
+
+    if found then API.DoAction_TileF(originTile) end
+end
+
 setupMenu()
 while API.Read_LoopyLoop() do
     doRandomEvents()
+    handleElidinisEvents()
+    rechargeVacuum()
 
     if (menu.return_click) then
         menu.return_click = false
