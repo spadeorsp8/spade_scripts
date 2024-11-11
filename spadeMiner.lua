@@ -65,6 +65,10 @@ local function chargeGOTE()
     local buffStatus = API.Buffbar_GetIDstatus(51490, false)
     local stacks = tonumber(buffStatus.text)
 
+    if not buffStatus.found then
+        stacks = 0
+    end
+
     local porterId = getPorter()
     if porterId and stacks and stacks <= 50 then
         print ("Recharging GOTE")

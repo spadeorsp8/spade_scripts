@@ -61,7 +61,7 @@ local function handleElidinisEvents()
 end
 
 while API.Read_LoopyLoop() do
-    if API.GetGameState2() ~=3 or not API.PlayerLoggedIn() then
+    if API.GetGameState2() ~= 3 or not API.PlayerLoggedIn() then
         print("Bad game state, exiting.")
         break
     end
