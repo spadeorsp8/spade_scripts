@@ -24,6 +24,7 @@ local BANK_CHEST = 114022
 local WORKBENCH = 115421
 local CHRONOTE = 49430
 local TOKEN_BOX = 36093
+local GOTE = 44550
 local ARTIFACTS = { GATESTONE, RING, TOTEM, MINE }
 local ARTIFACT_IFS = { 1, 5, 9, 13 }
 local PORTERS = { 51490, 29285, 29283, 29281, 29279, 29277, 29275 }
@@ -102,18 +103,22 @@ end
 
 local function chargeGOTE()
     local buffStatus = API.Buffbar_GetIDstatus(51490, false)
-    local stacks = tonumber(buffStatus.text)
-
-    if not buffStatus.found then
-        stacks = 0
-    end
+    local necklaceContainer = API.Container_Get_all(94)[3]
 
     local porterId = getPorter()
-    if porterId and stacks and stacks <= 50 then
-        print ("Recharging GOTE")
-        API.DoAction_Ability("Grace of the elves", 5, API.OFF_ACT_GeneralInterface_route)
-        API.RandomSleep2(500, 250, 500)
+    if not porterId or buffStatus.found then
+        return
     end
+
+    if necklaceContainer.item_id == GOTE then
+        print("Recharging GOTE")
+        API.DoAction_Ability("Grace of the elves", 5, API.OFF_ACT_GeneralInterface_route)
+    else
+        print("Equipping new porter!")
+        API.DoAction_Inventory1(porterId, 0, 2, API.OFF_ACT_GeneralInterface_route)
+    end
+
+    API.RandomSleep2(500, 250, 500)
 end
 
 local function destroyTomes()
