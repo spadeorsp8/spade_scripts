@@ -106,16 +106,23 @@ local function chargeGOTE()
     local necklaceContainer = API.Container_Get_all(94)[3]
 
     local porterId = getPorter()
-    if not porterId or buffStatus.found then
+    if not porterId then
         return
     end
 
     if necklaceContainer.item_id == GOTE then
-        print("Recharging GOTE")
-        API.DoAction_Ability("Grace of the elves", 5, API.OFF_ACT_GeneralInterface_route)
+        local stacks = tonumber(buffStatus.text)
+        if not buffStatus.found then stacks = 0 end
+        
+        if stacks <= 50 then
+            print("Recharging GOTE")
+            API.DoAction_Ability("Grace of the elves", 5, API.OFF_ACT_GeneralInterface_route)
+        end
     else
-        print("Equipping new porter!")
-        API.DoAction_Inventory1(porterId, 0, 2, API.OFF_ACT_GeneralInterface_route)
+        if not buffStatus.found then
+            print("Equipping new porter!")
+            API.DoAction_Inventory1(porterId, 0, 2, API.OFF_ACT_GeneralInterface_route)
+        end
     end
 
     API.RandomSleep2(500, 250, 500)
@@ -156,8 +163,7 @@ local function bank()
 end
 
 local function excavate()
-    chargeGOTE()
-    if artifactFoundInterfacePresent() then
+    if artifactFoundInterfacePresent() or not (API.CheckAnim(50) or API.ReadPlayerMovin2()) then
         clickedSpotTile = nil
     end
 
@@ -344,10 +350,10 @@ while API.Read_LoopyLoop() do
     end
 
     API.DoRandomEvents()
+    chargeGOTE()
+    destroyTomes()
 
     if API.InvFull_() then
-        destroyTomes()
-
         if redeemArtifacts and itr % BANK_INCREMENT == 0 then
             API.RandomSleep2(1000, 1000, 1000)
             goToAnachronia()
