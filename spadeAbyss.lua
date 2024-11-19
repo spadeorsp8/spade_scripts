@@ -138,7 +138,7 @@ while API.Read_LoopyLoop() do
     end
 
     if LOOT then loot(TDATA) end
-    if not API.LocalPlayer_IsInCombat_() then
+    if not API.CheckAnim(100) and not API.LocalPlayer_IsInCombat_() then
         print("Running to reset spot.")
         local resetTile = FFPOINT.new(TDATA.resetSpot[1] + math.random(-5, 5), TDATA.resetSpot[2] + math.random(0, 5), 0)
         API.DoAction_TileF(resetTile)
