@@ -340,6 +340,16 @@ local function turnInArtifacts()
     return true
 end
 
+local function maintainPrayer()
+    if API.GetPrayPrecent() > math.random(60, 66) then
+        return
+    end
+
+    if not API.DeBuffbar_GetIDstatus(43358, false).found then
+        API.DoAction_Inventory1(43358, 0, 1, API.OFF_ACT_GeneralInterface_route)
+    end
+end
+
 goToDaemonheim()
 
 local itr = 1
@@ -351,6 +361,7 @@ while API.Read_LoopyLoop() do
 
     API.DoRandomEvents()
     chargeGOTE()
+    maintainPrayer()
     destroyTomes()
 
     if API.InvFull_() then
